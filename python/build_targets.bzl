@@ -433,9 +433,12 @@ def build_targets(name):
 
     native.cc_library(
         name = "proto_api",
+        srcs = ["google/protobuf/proto_api.cc"],
         hdrs = ["google/protobuf/proto_api.h"],
         visibility = ["//visibility:public"],
         deps = [
+            "@com_google_absl//absl/log:absl_check",
+            "@com_google_absl//absl/status",
             "@system_python//:python_headers",
         ],
     )
