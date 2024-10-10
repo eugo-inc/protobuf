@@ -172,7 +172,7 @@ void MutateNothingByVisit(Message& message) {
         }
       } else {
         for (auto& it : info.Mutable()) {
-          it = it;
+          it = *&it;  // Avoid -Wself-assign.
         }
       }
     } else {
