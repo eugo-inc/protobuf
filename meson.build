@@ -30,8 +30,8 @@ protoc_cpp = find_program('protoc')
 # @begin: proto_cpp_upb
 protoc_cpp_upb_with_default_args = [
     protoc_cpp,
-    '--proto_path=@SOURCE_ROOT@',
-    '--upbdefs_out=@BUILD_ROOT@',
+    '--proto_path=@SOURCE_ROOT@/src/',
+    '--upbdefs_out=@BUILD_ROOT@/src/',
     '--upb_minitable_out=@BUILD_ROOT@',
     '@INPUT@'
 ]
@@ -44,8 +44,8 @@ proto_cpp_upb_default_kwargs = {
 # @begin: proto_py
 protoc_py_with_default_args = [
     protoc_cpp,
-    '--proto_path=@SOURCE_ROOT@',
-    '--python_out=@BUILD_ROOT@',
+    '--proto_path=@SOURCE_ROOT@/src/',
+    '--python_out=@BUILD_ROOT@/src/',
     '@INPUT@'
 ]
 proto_py_default_install_dir = py.get_install_dir() / 'google' / 'protobuf'
