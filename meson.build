@@ -32,7 +32,7 @@ protoc_cpp_upb_with_default_args = [
     protoc_cpp,
     '--proto_path=@SOURCE_ROOT@/src/',
     '--upbdefs_out=@BUILD_ROOT@/src/',
-    '--upb_minitable_out=@BUILD_ROOT@',
+    '--upb_minitable_out=@BUILD_ROOT@/src/',
     '@INPUT@'
 ]
 proto_cpp_upb_default_kwargs = {
