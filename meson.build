@@ -42,6 +42,8 @@ proto_cpp_upb_default_kwargs = {
 # @end: proto_cpp_upb
 
 # @begin: proto_py
+# `/src/` part is required to strip `src` from the `protoc` generation logic. W/O that, it produces corrupted Python
+# (10x times smaller) files failing at runtime.
 protoc_py_with_default_args = [
     protoc_cpp,
     '--proto_path=@SOURCE_ROOT@/src/',
