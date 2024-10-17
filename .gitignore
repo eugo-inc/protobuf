@@ -216,3 +216,7 @@ compile_commands.json
 
 # Ignore Bzlmod lock file until it is more stable
 MODULE.bazel.lock
+
+# Eugo meson build folders
+eugo_build
+eugo_build_whl
