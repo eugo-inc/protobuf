@@ -18,10 +18,6 @@ py = import('python').find_installation(pure: false)
 # === @end: Meson modules imports ===
 
 
-# === @begin: Project-wide settings ===
-# === @end: Project-wide settings ===
-
-
 # === @begin: Dependencies ===
 protobuf_libupb = dependency('protobuf', method: 'cmake', modules: ['protobuf::libupb'])
 utf8_range = dependency('protobuf', method: 'cmake', modules: ['utf8_range::utf8_range'])
