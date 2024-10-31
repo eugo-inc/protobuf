@@ -116,7 +116,8 @@ static_assert(PROTOBUF_GNUC_MIN(7, 3), "Protobuf only supports GCC 7.3 and newer
 #elif defined(_MSVC_LANG)
 static_assert(PROTOBUF_MSC_VER_MIN(1910), "Protobuf only supports MSVC 2017 and newer.");
 #endif
-static_assert(PROTOBUF_CPLUSPLUS_MIN(201402L), "Protobuf only supports C++14 and newer.");
+static_assert(PROTOBUF_CPLUSPLUS_MIN(201703L),
+              "Protobuf only supports C++17 and newer.");
 
 // Check minimum Abseil version.
 #if defined(ABSL_LTS_RELEASE_VERSION) && defined(ABSL_LTS_RELEASE_PATCH_LEVEL)
@@ -142,10 +143,6 @@ static_assert(PROTOBUF_ABSL_MIN(20230125, 3),
 // Used for descriptor proto extension declarations.
 // Owner: shaod@, gberg@
 #define PROTOBUF_FUTURE_DESCRIPTOR_EXTENSION_DECL 1
-
-// Removes Arena::CreateMessage, as Arena::Create is equivalent
-// Owner: ckennelly@, mkruskal@
-#define PROTOBUF_FUTURE_REMOVE_CREATEMESSAGE 1
 
 // Renames DescriptorPool::AddUnusedImportTrackFile
 // Owner: mkruskal@
@@ -371,7 +368,7 @@ static_assert(PROTOBUF_ABSL_MIN(20230125, 3),
 #ifdef PROTOBUF_NODISCARD
 #error PROTOBUF_NODISCARD was previously defined
 #endif
-#if ABSL_HAVE_CPP_ATTRIBUTE(nodiscard) && PROTOBUF_CPLUSPLUS_MIN(201703L)
+#if ABSL_HAVE_CPP_ATTRIBUTE(nodiscard)
 #define PROTOBUF_NODISCARD [[nodiscard]]
 #elif ABSL_HAVE_ATTRIBUTE(warn_unused_result) || defined(__GNUC__)
 #define PROTOBUF_NODISCARD __attribute__((warn_unused_result))
@@ -615,8 +612,7 @@ static_assert(PROTOBUF_ABSL_MIN(20230125, 3),
 #ifdef PROTOBUF_UNUSED
 #error PROTOBUF_UNUSED was previously defined
 #endif
-#if ABSL_HAVE_CPP_ATTRIBUTE(maybe_unused) || \
-    (PROTOBUF_MSC_VER_MIN(1911) && PROTOBUF_CPLUSPLUS_MIN(201703L))
+#if ABSL_HAVE_CPP_ATTRIBUTE(maybe_unused) || (PROTOBUF_MSC_VER_MIN(1911))
 #define PROTOBUF_UNUSED [[maybe_unused]]
 #elif ABSL_HAVE_ATTRIBUTE(unused) || defined(__GNUC__)
 #define PROTOBUF_UNUSED __attribute__((__unused__))
@@ -673,6 +669,7 @@ static_assert(PROTOBUF_ABSL_MIN(20230125, 3),
 #endif
 
 // ThreadSafeArenaz is turned off completely in opensource builds.
+
 
 // noreturn is defined as a macro in C's stdnoreturn.h
 #ifdef noreturn
@@ -860,6 +857,12 @@ static_assert(PROTOBUF_ABSL_MIN(20230125, 3),
 // captured `this`.
 // https://bugzilla.mozilla.org/show_bug.cgi?id=1373625
 #pragma GCC diagnostic ignored "-Wunused-lambda-capture"
+// GCC complains when attributes are specified on anything other than the first
+// declaration for enums, even if they all specify the same set.
+// Eg this would trigger the warning:
+//   enum [[deprecated]] foo : int;
+//   enum [[deprecated]] foo : int;
+#pragma GCC diagnostic ignored "-Wattributes"
 // -Wsign-conversion causes a lot of warnings on mostly code like:
 //   int index = ...
 //   int value = vec[index];
@@ -904,7 +907,8 @@ static_assert(PROTOBUF_ABSL_MIN(20230125, 3),
 #pragma warning(disable: 4125)
 #endif
 
-#if PROTOBUF_ENABLE_DEBUG_LOGGING_MAY_LEAK_PII
+#if defined(PROTOBUF_ENABLE_DEBUG_LOGGING_MAY_LEAK_PII) && \
+    PROTOBUF_ENABLE_DEBUG_LOGGING_MAY_LEAK_PII
 #define PROTOBUF_DEBUG true
 #else
 #define PROTOBUF_DEBUG false

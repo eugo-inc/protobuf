@@ -41,9 +41,7 @@ ExtensionGenerator::ExtensionGenerator(const FieldDescriptor* descriptor,
     case FieldDescriptor::CPPTYPE_ENUM:
       type_traits_.append("EnumTypeTraits< ");
       type_traits_.append(ClassName(descriptor_->enum_type(), true));
-      type_traits_.append(", ");
-      type_traits_.append(ClassName(descriptor_->enum_type(), true));
-      type_traits_.append("_IsValid>");
+      type_traits_.append(">");
       break;
     case FieldDescriptor::CPPTYPE_STRING:
       type_traits_.append("StringTypeTraits");
@@ -91,8 +89,13 @@ bool ExtensionGenerator::IsScoped() const {
 void ExtensionGenerator::GenerateDeclaration(io::Printer* p) const {
   auto var = p->WithVars(variables_);
   auto annotate = p->WithAnnotations({{"name", descriptor_}});
-
-  p->Emit({{"qualifier",
+  p->Emit({{"constant_qualifier",
+            // If this is a class member, it needs to be declared
+            //   `static constexpr`.
+            // Otherwise, it will be
+            //   `inline constexpr`.
+            IsScoped() ? "static" : ""},
+           {"id_qualifier",
             // If this is a class member, it needs to be declared "static".
             // Otherwise, it needs to be "extern".  In the latter case, it
             // also needs the DLL export/import specifier.
@@ -101,8 +104,9 @@ void ExtensionGenerator::GenerateDeclaration(io::Printer* p) const {
                 ? "extern"
                 : absl::StrCat(options_.dllexport_decl, " extern")}},
           R"cc(
-            static const int $constant_name$ = $number$;
-            $qualifier$ ::$proto_ns$::internal::ExtensionIdentifier<
+            inline $constant_qualifier $constexpr int $constant_name$ =
+                $number$;
+            $id_qualifier$ ::$proto_ns$::internal::ExtensionIdentifier<
                 $extendee$, ::$proto_ns$::internal::$type_traits$, $field_type$,
                 $packed$>
                 $name$;
@@ -149,32 +153,13 @@ void ExtensionGenerator::GenerateDefinition(io::Printer* p) {
                const std::string $default_str$($default_val$);
              )cc");
            }},
-          {"declare_const_var",
-           [&] {
-             if (!IsScoped()) return;
-             // Likewise, class members need to declare the field constant
-             // variable.
-             p->Emit(R"cc(
-#if !defined(_MSC_VER) || (_MSC_VER >= 1900 && _MSC_VER < 1912)
-               const int $scope$$constant_name$;
-#endif
-             )cc");
-           }},
-          {"define_extension_id",
-           [&] {
-             p->Emit(R"cc(
-               PROTOBUF_CONSTINIT$ dllexport_decl$
-                   PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 ::_pbi::
-                       ExtensionIdentifier<$extendee$, ::_pbi::$type_traits$,
-                                           $field_type$, $packed$>
-                           $scoped_name$($constant_name$, $default_str$);
-             )cc");
-           }},
       },
       R"cc(
         $declare_default_str$;
-        $declare_const_var$;
-        $define_extension_id$;
+        PROTOBUF_CONSTINIT$ dllexport_decl$
+            PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 ::_pbi::ExtensionIdentifier<
+                $extendee$, ::_pbi::$type_traits$, $field_type$, $packed$>
+                $scoped_name$($constant_name$, $default_str$);
       )cc");
 }
 
@@ -214,7 +199,7 @@ void ExtensionGenerator::GenerateRegistration(io::Printer* p,
                              ::_pbi::GetPrototypeForWeakDescriptor(
                                  &$extendee_table$, $extendee_index$, true),
                              $number$, $field_type$, $repeated$, $packed$,
-                             $enum_name$_IsValid)
+                             $enum_name$_internal_data_)
                        : (void)0),
                 )cc");
       } else if (priority == kInitPriority102) {
@@ -222,7 +207,7 @@ void ExtensionGenerator::GenerateRegistration(io::Printer* p,
                 R"cc(
                   ::_pbi::ExtensionSet::RegisterEnumExtension(
                       &$extendee$::default_instance(), $number$, $field_type$,
-                      $repeated$, $packed$, $enum_name$_IsValid),
+                      $repeated$, $packed$, $enum_name$_internal_data_),
                 )cc");
       }
 

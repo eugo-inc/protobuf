@@ -115,7 +115,8 @@ void WriteFieldAccessorsInHeader(const protobuf::Descriptor* desc,
                           * Re-points submessage to the given target.
                           *
                           * REQUIRES:
-                          * - both messages must be in the same arena.
+                          * - both messages must be in the same arena, or in two
+                          * fused arenas.
                           */
                          void set_alias_$2($0 target);
                        )cc",
@@ -128,7 +129,8 @@ void WriteFieldAccessorsInHeader(const protobuf::Descriptor* desc,
               inline $0 $1() const { return $2_$3(msg_); }
               inline void set_$1($0 value) { return $2_set_$3(msg_, value); }
             )cc",
-            CppConstType(field), resolved_field_name, MessageName(desc),
+            CppConstType(field), resolved_field_name,
+            upb::generator::CApiMessageType(desc->full_name()),
             resolved_upbc_name);
       }
     }
@@ -144,7 +146,9 @@ void WriteFieldAccessorHazzer(const protobuf::Descriptor* desc,
   if (field->has_presence()) {
     // Has presence.
     ctx.EmitLegacy("inline bool has_$0() const { return $1_has_$2(msg_); }\n",
-                   resolved_field_name, MessageName(desc), resolved_upbc_name);
+                   resolved_field_name,
+                   upb::generator::CApiMessageType(desc->full_name()),
+                   resolved_upbc_name);
   }
 }
 
@@ -155,7 +159,8 @@ void WriteFieldAccessorClear(const protobuf::Descriptor* desc,
                              Context& ctx) {
   if (field->has_presence()) {
     ctx.EmitLegacy("void clear_$0() { $2_clear_$1(msg_); }\n",
-                   resolved_field_name, resolved_upbc_name, MessageName(desc));
+                   resolved_field_name, resolved_upbc_name,
+                   upb::generator::CApiMessageType(desc->full_name()));
   }
 }
 
@@ -173,8 +178,8 @@ void WriteMapFieldAccessors(const protobuf::Descriptor* desc,
         inline void clear_$0() { $1_clear_$3(msg_); }
         void delete_$0($2 key);
       )cc",
-      resolved_field_name, MessageName(desc), CppConstType(key),
-      resolved_upbc_name);
+      resolved_field_name, upb::generator::CApiMessageType(desc->full_name()),
+      CppConstType(key), resolved_upbc_name);
 
   if (val->cpp_type() == protobuf::FieldDescriptor::CPPTYPE_MESSAGE) {
     ctx.Emit({{"field_name", resolved_field_name},
@@ -240,7 +245,8 @@ void WriteAccessorsInSource(const protobuf::Descriptor* desc, Context& ctx) {
               }
             )cc",
             class_name, CppConstType(field), resolved_field_name,
-            MessageName(desc), resolved_upbc_name);
+            upb::generator::CApiMessageType(desc->full_name()),
+            resolved_upbc_name);
         // Set string.
         ctx.EmitLegacy(
             R"cc(
@@ -249,7 +255,9 @@ void WriteAccessorsInSource(const protobuf::Descriptor* desc, Context& ctx) {
               }
             )cc",
             class_name, CppConstType(field), resolved_field_name,
-            resolved_upbc_name, MessageName(desc), arena_expression);
+            resolved_upbc_name,
+            upb::generator::CApiMessageType(desc->full_name()),
+            arena_expression);
       } else if (field->cpp_type() ==
                  protobuf::FieldDescriptor::CPPTYPE_MESSAGE) {
         ctx.EmitLegacy(
@@ -263,7 +271,8 @@ void WriteAccessorsInSource(const protobuf::Descriptor* desc, Context& ctx) {
               }
             )cc",
             class_name, MessagePtrConstType(field, /* is_const */ true),
-            resolved_field_name, MessageName(desc),
+            resolved_field_name,
+            upb::generator::CApiMessageType(desc->full_name()),
             MessageBaseType(field, /* maybe_const */ false),
             resolved_upbc_name);
 
@@ -274,17 +283,18 @@ void WriteAccessorsInSource(const protobuf::Descriptor* desc, Context& ctx) {
                     (upb_Message*)($3_mutable_$5(msg_, $6)), $6);
               }
               void $0::set_alias_$2($1 target) {
-                ABSL_CHECK_EQ(arena_, hpb::interop::upb::GetArena(target));
+                ABSL_CHECK(upb_Arena_IsFused(arena_, hpb::interop::upb::GetArena(target)));
                 upb_Message_SetBaseFieldMessage(
                     UPB_UPCAST(msg_),
-                    upb_MiniTable_GetFieldByIndex($7::minitable(), $8),
+                    upb_MiniTable_FindFieldByNumber($7::minitable(), $8),
                     hpb::interop::upb::GetMessage(target));
               }
             )cc",
             class_name, MessagePtrConstType(field, /* is_const */ false),
-            resolved_field_name, MessageName(desc),
+            resolved_field_name,
+            upb::generator::CApiMessageType(desc->full_name()),
             MessageBaseType(field, /* maybe_const */ false), resolved_upbc_name,
-            arena_expression, ClassName(desc), field->index());
+            arena_expression, ClassName(desc), field->number());
       }
     }
   }
@@ -292,7 +302,7 @@ void WriteAccessorsInSource(const protobuf::Descriptor* desc, Context& ctx) {
   ctx.Emit("}  // namespace internal\n\n");
 }
 
-void WriteMapAccessorDefinitions(const protobuf::Descriptor* message,
+void WriteMapAccessorDefinitions(const protobuf::Descriptor* desc,
                                  const protobuf::FieldDescriptor* field,
                                  const absl::string_view resolved_field_name,
                                  const absl::string_view class_name,
@@ -322,9 +332,10 @@ void WriteMapAccessorDefinitions(const protobuf::Descriptor* message,
           }
         )cc",
         class_name, resolved_field_name, CppConstType(key),
-        MessagePtrConstType(val, /* is_const */ true), MessageName(message),
-        MessageName(val->message_type()), optional_conversion_code,
-        converted_key_name, upbc_name,
+        MessagePtrConstType(val, /* is_const */ true),
+        upb::generator::CApiMessageType(desc->full_name()),
+        upb::generator::CApiMessageType(val->message_type()->full_name()),
+        optional_conversion_code, converted_key_name, upbc_name,
         ::upb::generator::MiniTableMessageVarName(
             val->message_type()->full_name()));
     ctx.EmitLegacy(
@@ -337,9 +348,10 @@ void WriteMapAccessorDefinitions(const protobuf::Descriptor* message,
           }
         )cc",
         class_name, resolved_field_name, CppConstType(key),
-        MessagePtrConstType(val, /* is_const */ false), MessageName(message),
-        MessageName(val->message_type()), optional_conversion_code,
-        converted_key_name, upbc_name,
+        MessagePtrConstType(val, /* is_const */ false),
+        upb::generator::CApiMessageType(desc->full_name()),
+        upb::generator::CApiMessageType(val->message_type()->full_name()),
+        optional_conversion_code, converted_key_name, upbc_name,
         ::upb::generator::MiniTableMessageVarName(
             val->message_type()->full_name()));
     ctx.EmitLegacy(
@@ -350,9 +362,10 @@ void WriteMapAccessorDefinitions(const protobuf::Descriptor* message,
           }
         )cc",
         class_name, resolved_field_name, CppConstType(key),
-        MessagePtrConstType(val, /* is_const */ true), MessageName(message),
-        MessageName(val->message_type()), optional_conversion_code,
-        converted_key_name, upbc_name);
+        MessagePtrConstType(val, /* is_const */ true),
+        upb::generator::CApiMessageType(desc->full_name()),
+        upb::generator::CApiMessageType(val->message_type()->full_name()),
+        optional_conversion_code, converted_key_name, upbc_name);
     ctx.EmitLegacy(
         R"cc(
           bool $0::set_alias_$1($2 key, $3 value) {
@@ -361,9 +374,10 @@ void WriteMapAccessorDefinitions(const protobuf::Descriptor* message,
           }
         )cc",
         class_name, resolved_field_name, CppConstType(key),
-        MessagePtrConstType(val, /* is_const */ false), MessageName(message),
-        MessageName(val->message_type()), optional_conversion_code,
-        converted_key_name, upbc_name);
+        MessagePtrConstType(val, /* is_const */ false),
+        upb::generator::CApiMessageType(desc->full_name()),
+        upb::generator::CApiMessageType(val->message_type()->full_name()),
+        optional_conversion_code, converted_key_name, upbc_name);
     ctx.EmitLegacy(
         R"cc(
           absl::StatusOr<$3> $0::get_$1($2 key) {
@@ -376,8 +390,9 @@ void WriteMapAccessorDefinitions(const protobuf::Descriptor* message,
           }
         )cc",
         class_name, resolved_field_name, CppConstType(key),
-        MessagePtrConstType(val, /* is_const */ true), MessageName(message),
-        MessageName(val->message_type()),
+        MessagePtrConstType(val, /* is_const */ true),
+        upb::generator::CApiMessageType(desc->full_name()),
+        upb::generator::CApiMessageType(val->message_type()->full_name()),
         QualifiedClassName(val->message_type()), optional_conversion_code,
         converted_key_name, upbc_name);
     ctx.Emit(
@@ -385,8 +400,9 @@ void WriteMapAccessorDefinitions(const protobuf::Descriptor* message,
          {"hpb_field_name", resolved_field_name},
          {"const_key", CppConstType(key)},
          {"PtrMut", MessagePtrConstType(val, false)},
-         {"upb_msg_name", MessageName(message)},
-         {"return_type", MessageName(val->message_type())},
+         {"upb_msg_name", upb::generator::CApiMessageType(desc->full_name())},
+         {"return_type",
+          upb::generator::CApiMessageType(val->message_type()->full_name())},
          {"proto_class", QualifiedClassName(val->message_type())},
          {"optional_conversion_code", optional_conversion_code},
          {"converted_key_name", converted_key_name},
@@ -410,9 +426,10 @@ void WriteMapAccessorDefinitions(const protobuf::Descriptor* message,
           void $0::delete_$1($2 key) { $6$4_$8_delete(msg_, $7); }
         )cc",
         class_name, resolved_field_name, CppConstType(key),
-        MessagePtrConstType(val, /* is_const */ false), MessageName(message),
-        MessageName(val->message_type()), optional_conversion_code,
-        converted_key_name, upbc_name);
+        MessagePtrConstType(val, /* is_const */ false),
+        upb::generator::CApiMessageType(desc->full_name()),
+        upb::generator::CApiMessageType(val->message_type()->full_name()),
+        optional_conversion_code, converted_key_name, upbc_name);
   } else if (val->cpp_type() == protobuf::FieldDescriptor::CPPTYPE_STRING) {
     ctx.EmitLegacy(
         R"cc(
@@ -423,8 +440,8 @@ void WriteMapAccessorDefinitions(const protobuf::Descriptor* message,
           }
         )cc",
         class_name, resolved_field_name, CppConstType(key), CppConstType(val),
-        MessageName(message), optional_conversion_code, converted_key_name,
-        upbc_name);
+        upb::generator::CApiMessageType(desc->full_name()),
+        optional_conversion_code, converted_key_name, upbc_name);
     ctx.EmitLegacy(
         R"cc(
           absl::StatusOr<$3> $0::get_$1($2 key) {
@@ -437,15 +454,15 @@ void WriteMapAccessorDefinitions(const protobuf::Descriptor* message,
           }
         )cc",
         class_name, resolved_field_name, CppConstType(key), CppConstType(val),
-        MessageName(message), optional_conversion_code, converted_key_name,
-        upbc_name);
+        upb::generator::CApiMessageType(desc->full_name()),
+        optional_conversion_code, converted_key_name, upbc_name);
     ctx.EmitLegacy(
         R"cc(
           void $0::delete_$1($2 key) { $5$4_$7_delete(msg_, $6); }
         )cc",
         class_name, resolved_field_name, CppConstType(key), CppConstType(val),
-        MessageName(message), optional_conversion_code, converted_key_name,
-        upbc_name);
+        upb::generator::CApiMessageType(desc->full_name()),
+        optional_conversion_code, converted_key_name, upbc_name);
   } else {
     ctx.EmitLegacy(
         R"cc(
@@ -454,8 +471,8 @@ void WriteMapAccessorDefinitions(const protobuf::Descriptor* message,
           }
         )cc",
         class_name, resolved_field_name, CppConstType(key), CppConstType(val),
-        MessageName(message), optional_conversion_code, converted_key_name,
-        upbc_name);
+        upb::generator::CApiMessageType(desc->full_name()),
+        optional_conversion_code, converted_key_name, upbc_name);
     ctx.EmitLegacy(
         R"cc(
           absl::StatusOr<$3> $0::get_$1($2 key) {
@@ -468,15 +485,15 @@ void WriteMapAccessorDefinitions(const protobuf::Descriptor* message,
           }
         )cc",
         class_name, resolved_field_name, CppConstType(key), CppConstType(val),
-        MessageName(message), optional_conversion_code, converted_key_name,
-        upbc_name);
+        upb::generator::CApiMessageType(desc->full_name()),
+        optional_conversion_code, converted_key_name, upbc_name);
     ctx.EmitLegacy(
         R"cc(
           void $0::delete_$1($2 key) { $5$4_$7_delete(msg_, $6); }
         )cc",
         class_name, resolved_field_name, CppConstType(key), CppConstType(val),
-        MessageName(message), optional_conversion_code, converted_key_name,
-        upbc_name);
+        upb::generator::CApiMessageType(desc->full_name()),
+        optional_conversion_code, converted_key_name, upbc_name);
   }
 }
 

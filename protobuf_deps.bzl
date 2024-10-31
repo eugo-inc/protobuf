@@ -62,16 +62,14 @@ def protobuf_deps():
         _github_archive(
             name = "com_google_absl",
             repo = "https://github.com/abseil/abseil-cpp",
-            # TODO: use Layout::WithStaticSizes in SerialArenaChunk when we update
-            # abseil to new release.
-            commit = "4a2c63365eff8823a5221db86ef490e828306f9d",  # Abseil LTS 20240116.0
-            sha256 = "f49929d22751bf70dd61922fb1fd05eb7aec5e7a7f870beece79a6e28f0a06c1",
+            commit = "4447c7562e3bc702ade25105912dce503f0c4010",  # Abseil LTS 20240722.0
+            sha256 = "d8342ad77aa9e16103c486b615460c24a695a1f04cdb760eb02fef780df99759",
         )
 
     if not native.existing_rule("zlib"):
         http_archive(
             name = "zlib",
-            build_file = Label("//:third_party/zlib.BUILD"),
+            build_file = Label("//third_party:zlib.BUILD"),
             sha256 = "38ef96b8dfe510d42707d9c781877914792541133e1870841463bfa73f883e32",
             strip_prefix = "zlib-1.3.1",
             urls = [
@@ -84,9 +82,9 @@ def protobuf_deps():
         _github_archive(
             name = "jsoncpp",
             repo = "https://github.com/open-source-parsers/jsoncpp",
-            commit = "5defb4ed1a4293b8e2bf641e16b156fb9de498cc",  # 1.9.5
-            sha256 = "a03d3136ff6dd092143bba8d3ded641e87b44e6c0b1f632b368f6cc8587524b5",
-            build_file = Label("//:third_party/jsoncpp.BUILD"),
+            commit = "89e2973c754a9c02a49974d839779b151e95afd6",  # 1.9.6
+            sha256 = "02f0804596c1e18c064d890ac9497fa17d585e822fcacf07ff8a8aa0b344a7bd",
+            build_file = Label("//third_party:jsoncpp.BUILD"),
         )
 
     if not native.existing_rule("rules_cc"):
@@ -100,8 +98,8 @@ def protobuf_deps():
     if not native.existing_rule("rules_java"):
         http_archive(
             name = "rules_java",
-            url = "https://github.com/bazelbuild/rules_java/releases/download/7.11.1/rules_java-7.11.1.tar.gz",
-            sha256 = "6f3ce0e9fba979a844faba2d60467843fbf5191d8ca61fa3d2ea17655b56bb8c",
+            url = "https://github.com/bazelbuild/rules_java/releases/download/7.12.2/rules_java-7.12.2.tar.gz",
+            sha256 = "a9690bc00c538246880d5c83c233e4deb83fe885f54c21bb445eb8116a180b83",
         )
 
     if not native.existing_rule("rules_shell"):

@@ -5,6 +5,7 @@
 // license that can be found in the LICENSE file or at
 // https://developers.google.com/open-source/licenses/bsd
 
+#include <climits>
 #include <cstdint>
 #include <iterator>
 #include <limits>
@@ -25,12 +26,14 @@
 #include "google/protobuf/compiler/hpb/tests/test_model.upb.proto.h"
 #include "google/protobuf/hpb/arena.h"
 #include "google/protobuf/hpb/backend/upb/interop.h"
+#include "google/protobuf/hpb/extension.h"
 #include "google/protobuf/hpb/hpb.h"
 #include "google/protobuf/hpb/ptr.h"
 #include "google/protobuf/hpb/repeated_field.h"
 #include "google/protobuf/hpb/requires.h"
 #include "upb/mem/arena.h"
 #include "upb/mem/arena.hpp"
+#include "upb/mini_table/extension.h"
 
 namespace {
 
@@ -52,6 +55,8 @@ using ::hpb_unittest::protos::TestModel_Category_NEWS;
 using ::hpb_unittest::protos::TestModel_Category_VIDEO;
 using ::hpb_unittest::protos::theme;
 using ::hpb_unittest::protos::ThemeExtension;
+using ::hpb_unittest::someotherpackage::protos::int32_ext;
+using ::hpb_unittest::someotherpackage::protos::int64_ext;
 using ::testing::ElementsAre;
 
 TEST(CppGeneratedCode, Constructor) { TestModel test_model; }
@@ -876,6 +881,21 @@ TEST(CppGeneratedCode, GetExtension) {
             hpb::GetExtension(&model, theme).value()->ext_name());
 }
 
+TEST(CppGeneratedCode, GetExtensionInt32WithDefault) {
+  TestModel model;
+  auto res = hpb::GetExtension(&model, int32_ext);
+  EXPECT_TRUE(res.ok());
+  EXPECT_EQ(*res, 644);
+}
+
+TEST(CppGeneratedCode, GetExtensionInt64WithDefault) {
+  TestModel model;
+  auto res = hpb::GetExtension(&model, int64_ext);
+  EXPECT_TRUE(res.ok());
+  int64_t expected = std::numeric_limits<int32_t>::max() + int64_t{1};
+  EXPECT_EQ(*res, expected);
+}
+
 TEST(CppGeneratedCode, GetExtensionOnMutableChild) {
   TestModel model;
   ThemeExtension extension1;
@@ -982,8 +1002,11 @@ TEST(CppGeneratedCode, ParseWithExtensionRegistry) {
   ::upb::Arena arena;
   auto bytes = ::hpb::Serialize(&model, arena);
   EXPECT_EQ(true, bytes.ok());
-  ::hpb::ExtensionRegistry extensions(
-      {&theme, &other_ext, &ThemeExtension::theme_extension}, arena);
+  std::vector<const upb_MiniTableExtension*> exts{
+      theme.mini_table_ext(), other_ext.mini_table_ext(),
+      ThemeExtension::theme_extension.mini_table_ext()};
+
+  ::hpb::ExtensionRegistry extensions(exts, arena);
   TestModel parsed_model =
       ::hpb::Parse<TestModel>(bytes.value(), extensions).value();
   EXPECT_EQ("Test123", parsed_model.str1());
@@ -1247,7 +1270,8 @@ TEST(CppGeneratedCode, HasExtensionAndRegistry) {
   std::string data = std::string(::hpb::Serialize(&source, arena).value());
 
   // Test with ExtensionRegistry
-  ::hpb::ExtensionRegistry extensions({&theme}, arena);
+  std::vector<const upb_MiniTableExtension*> exts{theme.mini_table_ext()};
+  hpb::ExtensionRegistry extensions(exts, arena);
   TestModel parsed_model = ::hpb::Parse<TestModel>(data, extensions).value();
   EXPECT_TRUE(::hpb::HasExtension(&parsed_model, theme));
 }
@@ -1284,12 +1308,44 @@ TEST(CppGeneratedCode, SetAlias) {
             hpb::interop::upb::GetMessage(parent1.child()));
 }
 
+TEST(CppGeneratedCode, SetAliasFieldsOutofOrder) {
+  hpb::Arena arena;
+  auto child = hpb::CreateMessage<Child>(arena);
+  child.set_peeps(12);
+  auto parent1 = hpb::CreateMessage<Parent>(arena);
+  auto parent2 = hpb::CreateMessage<Parent>(arena);
+  parent1.set_alias_child(child);
+  parent2.set_alias_child(child);
+  ASSERT_EQ(parent1.child()->peeps(), parent2.child()->peeps());
+  ASSERT_EQ(parent1.child()->peeps(), 12);
+}
+
 TEST(CppGeneratedCode, SetAliasFailsForDifferentArena) {
   hpb::Arena arena;
   auto child = hpb::CreateMessage<Child>(arena);
   hpb::Arena different_arena;
   auto parent = hpb::CreateMessage<Parent>(different_arena);
   EXPECT_DEATH(parent.set_alias_child(child), "hpb::interop::upb::GetArena");
+}
+
+TEST(CppGeneratedCode, SetAliasSucceedsForDifferentArenaFused) {
+  hpb::Arena arena;
+  auto parent1 = hpb::CreateMessage<Parent>(arena);
+  auto child = parent1.mutable_child();
+  child->set_peeps(12);
+
+  hpb::Arena other_arena;
+  auto parent2 = hpb::CreateMessage<Parent>(other_arena);
+  arena.Fuse(other_arena);
+
+  parent2.set_alias_child(child);
+
+  ASSERT_EQ(parent1.child()->peeps(), parent2.child()->peeps());
+  ASSERT_EQ(hpb::interop::upb::GetMessage(parent1.child()),
+            hpb::interop::upb::GetMessage(parent2.child()));
+  auto childPtr = hpb::Ptr<Child>(child);
+  ASSERT_EQ(hpb::interop::upb::GetMessage(childPtr),
+            hpb::interop::upb::GetMessage(parent1.child()));
 }
 
 TEST(CppGeneratedCode, SetAliasRepeated) {

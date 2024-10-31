@@ -290,10 +290,10 @@ TEST(Proto3ArenaTest, CheckOneofMessageFieldIsCleared) {
 #ifndef PROTOBUF_ASAN
   EXPECT_EQ(child->bb(), 0);
 #else
-#if GTEST_HAS_DEATH_TEST && defined(__cpp_if_constexpr)
+#if GTEST_HAS_DEATH_TEST
   EXPECT_DEATH(EXPECT_EQ(child->bb(), 100), "use-after-poison");
-#endif
-#endif
+#endif  // !GTEST_HAS_DEATH_TEST
+#endif  // !PROTOBUF_ASAN
 }
 
 TEST(Proto3OptionalTest, OptionalFieldDescriptor) {

@@ -127,8 +127,8 @@ absl::StatusOr<const google::protobuf::Descriptor*> FindMessageDescriptor(
         "FileDescriptor 'name' PyUnicode_AsUTF8() failure.");
   }
   if (!is_from_generated_pool) {
-    std::string error_msg = pyfile_name_char_ptr;
-    error_msg += " is not from generated pool";
+    std::string error_msg = absl::StrCat(pyfile_name_char_ptr,
+                                         " is not from generated pool");
     Py_DECREF(pyfile_name);
     return absl::InvalidArgumentError(error_msg);
   }
@@ -139,8 +139,8 @@ absl::StatusOr<const google::protobuf::Descriptor*> FindMessageDescriptor(
     // Already checked the file is from generated pool above, this
     // error should never be reached.
     ABSL_DLOG(ERROR) << "MEANT TO BE UNREACHABLE.";
-    std::string error_msg = "Fail to find/build file ";
-    error_msg += pyfile_name_char_ptr;
+    std::string error_msg = absl::StrCat("Fail to find/build file ",
+                                         pyfile_name_char_ptr);
     return absl::InternalError(error_msg);
   }
 

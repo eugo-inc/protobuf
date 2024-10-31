@@ -195,6 +195,11 @@ class PROTOBUF_EXPORT CachedSize {
   }
 
   void SetNonZero(Scalar desired) const noexcept {
+    ABSL_DCHECK_NE(desired, 0);
+    __atomic_store_n(&atom_, desired, __ATOMIC_RELAXED);
+  }
+
+  void SetNoDefaultInstance(Scalar desired) const noexcept {
     __atomic_store_n(&atom_, desired, __ATOMIC_RELAXED);
   }
 #else
@@ -218,6 +223,11 @@ class PROTOBUF_EXPORT CachedSize {
   }
 
   void SetNonZero(Scalar desired) const noexcept {
+    ABSL_DCHECK_NE(desired, 0);
+    atom_.store(desired, std::memory_order_relaxed);
+  }
+
+  void SetNoDefaultInstance(Scalar desired) const noexcept {
     atom_.store(desired, std::memory_order_relaxed);
   }
 #endif
@@ -252,7 +262,12 @@ struct FallbackMessageTraits {
   static constexpr auto StrongPointer() { return &T::default_instance; }
 };
 
-// Traits for message T.
+template <const uint32_t* kValidationData>
+struct EnumTraitsT {
+  static constexpr const uint32_t* validation_data() { return kValidationData; }
+};
+
+// Traits for messages and enums.
 // We use a class scope variable template, which can be specialized with a
 // different type in a non-defining declaration.
 // We need non-defining declarations because we might have duplicates of the
@@ -264,6 +279,14 @@ struct MessageTraitsImpl {
 };
 template <typename T>
 using MessageTraits = decltype(MessageTraitsImpl::value<T>);
+
+struct EnumTraitsImpl {
+  struct Undefined;
+  template <typename T>
+  static Undefined value;
+};
+template <typename T>
+using EnumTraits = decltype(EnumTraitsImpl::value<T>);
 
 class SwapFieldHelper;
 
@@ -1309,7 +1332,7 @@ std::string Utf8Format(const MessageLite& message_lite);
 //
 // `DynamicCastMessage` is similar to `dynamic_cast`, returns `nullptr` when the
 // input is not an instance of `T`. The overloads that take a reference will
-// terminate on mismatch.
+// throw std::bad_cast on mismatch, or terminate if compiled without exceptions.
 //
 // `DownCastMessage` is a lightweight function for downcasting base
 // `MessageLite` pointer to derived type, where it only does type checking if
@@ -1343,6 +1366,11 @@ template <typename T>
 const T& DynamicCastMessage(const MessageLite& from) {
   const T* destination_message = DynamicCastMessage<T>(&from);
   if (ABSL_PREDICT_FALSE(destination_message == nullptr)) {
+    // If exceptions are enabled, throw.
+    // Otherwise, log a fatal error.
+#if defined(ABSL_HAVE_EXCEPTIONS)
+    throw std::bad_cast();
+#endif
     // Move the logging into an out-of-line function to reduce bloat in the
     // caller.
     internal::FailDynamicCast(from, T::default_instance());

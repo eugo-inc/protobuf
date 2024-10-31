@@ -161,21 +161,25 @@ rust_library(
     deps = [":protobuf_cpp"],
 )
 
-alias(
+rust_library(
     name = "protobuf_gtest_matchers",
-    actual = select({
-        ":use_upb_kernel": ":protobuf_gtest_matchers_upb",
-        "//conditions:default": ":protobuf_gtest_matchers_cpp",
+    testonly = True,
+    srcs = ["gtest_matchers.rs"],
+    aliases = select({
+        ":use_upb_kernel": {"//rust:protobuf_gtest_matchers_upb": "protobuf_gtest_matchers_impl"},
+        "//conditions:default": {"//rust:protobuf_gtest_matchers_cpp": "protobuf_gtest_matchers_impl"},
     }),
-    visibility = [
-        "//visibility:public",
-    ],
+    visibility = ["//visibility:public"],
+    deps = select({
+        ":use_upb_kernel": [":protobuf_gtest_matchers_upb"],
+        "//conditions:default": [":protobuf_gtest_matchers_cpp"],
+    }),
 )
 
 rust_library(
     name = "protobuf_gtest_matchers_cpp",
     testonly = True,
-    srcs = ["gtest_matchers.rs"],
+    srcs = ["gtest_matchers_impl.rs"],
     aliases = {
         "//rust:protobuf_cpp": "protobuf",
     },
@@ -189,7 +193,7 @@ rust_library(
 rust_library(
     name = "protobuf_gtest_matchers_upb",
     testonly = True,
-    srcs = ["gtest_matchers.rs"],
+    srcs = ["gtest_matchers_impl.rs"],
     aliases = {
         "//rust:protobuf_upb": "protobuf",
     },
@@ -208,6 +212,7 @@ rust_library(
 proto_lang_toolchain(
     name = "proto_rust_upb_toolchain",
     command_line = "--rust_out=$(OUT)",
+    output_files = "multiple",
     progress_message = "Generating Rust proto_library %{label}",
     runtime = ":protobuf_upb",
     visibility = ["//visibility:public"],
@@ -216,6 +221,7 @@ proto_lang_toolchain(
 proto_lang_toolchain(
     name = "proto_rust_cpp_toolchain",
     command_line = "--rust_out=$(OUT)",
+    output_files = "multiple",
     progress_message = "Generating Rust proto_library %{label}",
     runtime = ":protobuf_cpp",
     visibility = ["//visibility:public"],
