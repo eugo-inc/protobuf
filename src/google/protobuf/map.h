@@ -17,19 +17,24 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <functional>
 #include <initializer_list>
 #include <iterator>
 #include <limits>  // To support Visual Studio 2008
+#include <new>     // IWYU pragma: keep for ::operator new.
 #include <string>
 #include <type_traits>
 #include <utility>
+
+#include "absl/base/optimization.h"
+#include "absl/memory/memory.h"
+#include "google/protobuf/message_lite.h"
 
 #if !defined(GOOGLE_PROTOBUF_NO_RDTSC) && defined(__APPLE__)
 #include <time.h>
 #endif
 
-#include "google/protobuf/stubs/common.h"
 #include "absl/base/attributes.h"
 #include "absl/container/btree_map.h"
 #include "absl/hash/hash.h"
@@ -39,7 +44,6 @@
 #include "google/protobuf/arena.h"
 #include "google/protobuf/generated_enum_util.h"
 #include "google/protobuf/internal_visibility.h"
-#include "google/protobuf/map_type_handler.h"
 #include "google/protobuf/port.h"
 #include "google/protobuf/wire_format_lite.h"
 
@@ -67,6 +71,10 @@ struct PtrAndLen;
 }  // namespace rust
 
 namespace internal {
+namespace v2 {
+class TableDriven;
+};
+
 template <typename Key, typename T>
 class MapFieldLite;
 
@@ -84,6 +92,10 @@ class TypeDefinedMapFieldBase;
 class DynamicMapField;
 
 class GeneratedMessageReflection;
+
+namespace v2 {
+class TableDriven;
+}  // namespace v2
 
 // The largest valid serialization for a message is INT_MAX, so we can't have
 // more than 32-bits worth of elements.
@@ -290,7 +302,7 @@ enum class MapNodeSizeInfoT : uint32_t;
 inline uint16_t SizeFromInfo(MapNodeSizeInfoT node_size_info) {
   return static_cast<uint16_t>(static_cast<uint32_t>(node_size_info) >> 16);
 }
-inline uint16_t ValueOffsetFromInfo(MapNodeSizeInfoT node_size_info) {
+inline constexpr uint16_t ValueOffsetFromInfo(MapNodeSizeInfoT node_size_info) {
   return static_cast<uint16_t>(static_cast<uint32_t>(node_size_info) >> 0);
 }
 constexpr MapNodeSizeInfoT MakeNodeInfo(uint16_t size, uint16_t value_offset) {
@@ -604,6 +616,7 @@ class PROTOBUF_EXPORT UntypedMapBase {
   friend struct MapBenchmarkPeer;
   friend class UntypedMapIterator;
   friend class RustMapHelper;
+  friend class v2::TableDriven;
 
   struct NodeAndBucket {
     NodeBase* node;
@@ -825,7 +838,7 @@ inline UntypedMapIterator UntypedMapBase::begin() const {
   } else {
     bucket_index = index_of_first_non_null_;
     TableEntryPtr entry = table_[bucket_index];
-    node = PROTOBUF_PREDICT_TRUE(internal::TableEntryIsList(entry))
+    node = ABSL_PREDICT_TRUE(internal::TableEntryIsList(entry))
                ? TableEntryToNode(entry)
                : TableEntryToTree(entry)->begin()->second;
     PROTOBUF_ASSUME(node != nullptr);
@@ -840,7 +853,7 @@ inline void UntypedMapIterator::SearchFrom(map_index_t start_bucket) {
     TableEntryPtr entry = m_->table_[i];
     if (entry == TableEntryPtr{}) continue;
     bucket_index_ = i;
-    if (PROTOBUF_PREDICT_TRUE(TableEntryIsList(entry))) {
+    if (ABSL_PREDICT_TRUE(TableEntryIsList(entry))) {
       node_ = TableEntryToNode(entry);
     } else {
       TreeForMap* tree = TableEntryToTree(entry);
@@ -950,6 +963,7 @@ class KeyMapBase : public UntypedMapBase {
   friend struct MapTestPeer;
   friend struct MapBenchmarkPeer;
   friend class RustMapHelper;
+  friend class v2::TableDriven;
 
   PROTOBUF_NOINLINE void erase_no_destroy(map_index_t b, KeyNode* node) {
     TreeIterator tree_it;
@@ -963,7 +977,7 @@ class KeyMapBase : public UntypedMapBase {
       EraseFromTree(b, tree_it);
     }
     --num_elements_;
-    if (PROTOBUF_PREDICT_FALSE(b == index_of_first_non_null_)) {
+    if (ABSL_PREDICT_FALSE(b == index_of_first_non_null_)) {
       while (index_of_first_non_null_ < num_buckets_ &&
              TableEntryIsEmpty(index_of_first_non_null_)) {
         ++index_of_first_non_null_;
@@ -1061,13 +1075,13 @@ class KeyMapBase : public UntypedMapBase {
     // We don't care how many elements are in trees.  If a lot are,
     // we may resize even though there are many empty buckets.  In
     // practice, this seems fine.
-    if (PROTOBUF_PREDICT_FALSE(new_size > hi_cutoff)) {
+    if (ABSL_PREDICT_FALSE(new_size > hi_cutoff)) {
       if (num_buckets_ <= max_size() / 2) {
         Resize(num_buckets_ * 2);
         return true;
       }
-    } else if (PROTOBUF_PREDICT_FALSE(new_size <= lo_cutoff &&
-                                      num_buckets_ > kMinTableSize)) {
+    } else if (ABSL_PREDICT_FALSE(new_size <= lo_cutoff &&
+                                  num_buckets_ > kMinTableSize)) {
       size_type lg2_of_size_reduction_factor = 1;
       // It's possible we want to shrink a lot here... size() could even be 0.
       // So, estimate how much to shrink by making sure we don't shrink so
@@ -1817,6 +1831,7 @@ class Map : private internal::KeyMapBase<internal::KeyForBase<Key>> {
   friend struct internal::MapTestPeer;
   friend struct internal::MapBenchmarkPeer;
   friend class internal::RustMapHelper;
+  friend class internal::v2::TableDriven;
 };
 
 namespace internal {

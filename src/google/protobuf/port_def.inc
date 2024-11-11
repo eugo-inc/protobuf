@@ -162,13 +162,13 @@ static_assert(PROTOBUF_ABSL_MIN(20230125, 3),
 #endif
 // For functions we want to force inline.
 #if defined(PROTOBUF_NO_INLINE)
-# define PROTOBUF_ALWAYS_INLINE
+#define PROTOBUF_ALWAYS_INLINE inline
 #elif defined(__GNUC__)
-# define PROTOBUF_ALWAYS_INLINE __attribute__((always_inline))
+#define PROTOBUF_ALWAYS_INLINE inline __attribute__((always_inline))
 #elif defined(_MSC_VER)
-# define PROTOBUF_ALWAYS_INLINE __forceinline
+#define PROTOBUF_ALWAYS_INLINE inline __forceinline
 #else
-# define PROTOBUF_ALWAYS_INLINE
+#define PROTOBUF_ALWAYS_INLINE inline
 #endif
 
 #ifdef PROTOBUF_ALWAYS_INLINE_CALL
@@ -196,7 +196,7 @@ static_assert(PROTOBUF_ABSL_MIN(20230125, 3),
 #if defined(NDEBUG) || (defined(_MSC_VER) && !defined(_DEBUG))
 # define PROTOBUF_NDEBUG_INLINE PROTOBUF_ALWAYS_INLINE
 #else
-# define PROTOBUF_NDEBUG_INLINE
+#define PROTOBUF_NDEBUG_INLINE inline
 #endif
 
 // Note that PROTOBUF_NOINLINE is an attribute applied to functions, to prevent
@@ -352,28 +352,6 @@ static_assert(PROTOBUF_ABSL_MIN(20230125, 3),
 # define PROTOC_EXPORT __attribute__((visibility("default")))
 #else
 # define PROTOC_EXPORT
-#endif
-
-#if defined(PROTOBUF_PREDICT_TRUE) || defined(PROTOBUF_PREDICT_FALSE)
-#error PROTOBUF_PREDICT_(TRUE|FALSE) was previously defined
-#endif
-#if defined(__GNUC__)
-# define PROTOBUF_PREDICT_TRUE(x) (__builtin_expect(false || (x), true))
-# define PROTOBUF_PREDICT_FALSE(x) (__builtin_expect(false || (x), false))
-#else
-# define PROTOBUF_PREDICT_TRUE(x) (x)
-# define PROTOBUF_PREDICT_FALSE(x) (x)
-#endif
-
-#ifdef PROTOBUF_NODISCARD
-#error PROTOBUF_NODISCARD was previously defined
-#endif
-#if ABSL_HAVE_CPP_ATTRIBUTE(nodiscard)
-#define PROTOBUF_NODISCARD [[nodiscard]]
-#elif ABSL_HAVE_ATTRIBUTE(warn_unused_result) || defined(__GNUC__)
-#define PROTOBUF_NODISCARD __attribute__((warn_unused_result))
-#else
-#define PROTOBUF_NODISCARD
 #endif
 
 #ifdef PROTOBUF_RESTRICT
@@ -608,17 +586,6 @@ static_assert(PROTOBUF_ABSL_MIN(20230125, 3),
       const ::google::protobuf::internal::TcParseTableBase *table, uint64_t hasbits
 #define PROTOBUF_TC_PARAM_NO_DATA_PASS \
   msg, ptr, ctx, ::google::protobuf::internal::TcFieldData::DefaultInit(), table, hasbits
-
-#ifdef PROTOBUF_UNUSED
-#error PROTOBUF_UNUSED was previously defined
-#endif
-#if ABSL_HAVE_CPP_ATTRIBUTE(maybe_unused) || (PROTOBUF_MSC_VER_MIN(1911))
-#define PROTOBUF_UNUSED [[maybe_unused]]
-#elif ABSL_HAVE_ATTRIBUTE(unused) || defined(__GNUC__)
-#define PROTOBUF_UNUSED __attribute__((__unused__))
-#else
-#define PROTOBUF_UNUSED
-#endif
 
 // For the toolchains that support it, evaluates to `true` if the input is
 // determined to be a compile time constant after optimizations have happened
@@ -969,7 +936,6 @@ namespace internal {
 #else
 #define PROTOBUF_DEPRECATE_AND_INLINE() [[deprecated]]
 #endif
-
 
 namespace google {
 namespace protobuf {

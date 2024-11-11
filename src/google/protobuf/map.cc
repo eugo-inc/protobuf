@@ -8,14 +8,16 @@
 #include "google/protobuf/map.h"
 
 #include <algorithm>
-#include <functional>
+#include <cstddef>
+#include <cstdint>
 #include <iterator>
 #include <string>
-#include <type_traits>
 
-#include "absl/hash/hash.h"
-#include "absl/strings/string_view.h"
+#include "absl/base/optimization.h"
+#include "absl/log/absl_check.h"
+#include "google/protobuf/arena.h"
 #include "google/protobuf/message_lite.h"
+#include "google/protobuf/port.h"
 
 
 // Must be included last.
@@ -121,7 +123,7 @@ void UntypedMapBase::ClearTable(const ClearInput input) {
       for (map_index_t b = index_of_first_non_null_, end = num_buckets_;
            b < end; ++b) {
         NodeBase* node =
-            PROTOBUF_PREDICT_FALSE(internal::TableEntryIsTree(table[b]))
+            ABSL_PREDICT_FALSE(internal::TableEntryIsTree(table[b]))
                 ? DestroyTree(TableEntryToTree(table[b]))
                 : TableEntryToNode(table[b]);
 

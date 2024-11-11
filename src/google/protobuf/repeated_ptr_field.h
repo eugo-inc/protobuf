@@ -32,6 +32,7 @@
 #include <utility>
 
 #include "absl/base/attributes.h"
+#include "absl/base/optimization.h"
 #include "absl/base/prefetch.h"
 #include "absl/log/absl_check.h"
 #include "absl/meta/type_traits.h"
@@ -218,7 +219,7 @@ class PROTOBUF_EXPORT RepeatedPtrFieldBase {
 
     // TODO: arena check is redundant once all `RepeatedPtrField`s
     // with non-null arena are owned by the arena.
-    if (PROTOBUF_PREDICT_FALSE(arena_ != nullptr)) return;
+    if (ABSL_PREDICT_FALSE(arena_ != nullptr)) return;
 
     using H = CommonHandler<TypeHandler>;
     int n = allocated_size();
@@ -296,7 +297,7 @@ class PROTOBUF_EXPORT RepeatedPtrFieldBase {
   // Pre-condition: PrepareForParse() is true.
   void AddAllocatedForParse(void* value) {
     ABSL_DCHECK(PrepareForParse());
-    if (PROTOBUF_PREDICT_FALSE(SizeAtCapacity())) {
+    if (ABSL_PREDICT_FALSE(SizeAtCapacity())) {
       *InternalExtend(1) = value;
       ++rep()->allocated_size;
     } else {
@@ -447,7 +448,7 @@ class PROTOBUF_EXPORT RepeatedPtrFieldBase {
   }
 
   template <typename TypeHandler>
-  PROTOBUF_NODISCARD Value<TypeHandler>* ReleaseLast() {
+  [[nodiscard]] Value<TypeHandler>* ReleaseLast() {
     Value<TypeHandler>* result = UnsafeArenaReleaseLast<TypeHandler>();
     // Now perform a copy if we're on an arena.
     Arena* arena = GetArena();
@@ -571,6 +572,8 @@ class PROTOBUF_EXPORT RepeatedPtrFieldBase {
   friend class google::protobuf::Reflection;
   friend class internal::SwapFieldHelper;
   friend class LazyRepeatedPtrField;
+
+  friend class RustRepeatedMessageHelper;
 
   // Concrete Arena enabled copy function used to copy messages instances.
   // This follows the `Arena::CopyConstruct` signature so that the compiler
@@ -789,7 +792,7 @@ void* RepeatedPtrFieldBase::AddInternal(Factory factory) {
     return result;
   }
   Rep* r = rep();
-  if (PROTOBUF_PREDICT_FALSE(SizeAtCapacity())) {
+  if (ABSL_PREDICT_FALSE(SizeAtCapacity())) {
     InternalExtend(1);
     r = rep();
   } else {
@@ -1092,7 +1095,7 @@ class RepeatedPtrField final : private internal::RepeatedPtrFieldBase {
   // If this RepeatedPtrField is on an arena, an object copy is required to pass
   // ownership back to the user (for compatible semantics). Use
   // UnsafeArenaReleaseLast() if this behavior is undesired.
-  PROTOBUF_NODISCARD Element* ReleaseLast();
+  [[nodiscard]] Element* ReleaseLast();
 
   // Adds an already-allocated object, skipping arena-ownership checks. The user
   // must guarantee that the given object is in the same arena as this
@@ -1536,6 +1539,37 @@ inline int RepeatedPtrField<Element>::Capacity() const {
 // -------------------------------------------------------------------
 
 namespace internal {
+
+// This class gives the Rust implementation access to some protected methods on
+// RepeatedPtrFieldBase. These methods allow us to operate solely on the
+// MessageLite interface so that we do not need to generate code for each
+// concrete message type.
+class RustRepeatedMessageHelper {
+ public:
+  static RepeatedPtrFieldBase* New() { return new RepeatedPtrFieldBase; }
+
+  static void Delete(RepeatedPtrFieldBase* field) {
+    field->DestroyProtos();
+    delete field;
+  }
+
+  static size_t Size(const RepeatedPtrFieldBase& field) {
+    return static_cast<size_t>(field.size());
+  }
+
+  static void Reserve(RepeatedPtrFieldBase& field, size_t additional) {
+    field.Reserve(field.size() + additional);
+  }
+
+  static const MessageLite& At(const RepeatedPtrFieldBase& field,
+                               size_t index) {
+    return field.at<GenericTypeHandler<MessageLite>>(index);
+  }
+
+  static MessageLite& At(RepeatedPtrFieldBase& field, size_t index) {
+    return field.at<GenericTypeHandler<MessageLite>>(index);
+  }
+};
 
 // STL-like iterator implementation for RepeatedPtrField.  You should not
 // refer to this class directly; use RepeatedPtrField<T>::iterator instead.

@@ -1035,13 +1035,12 @@ class PROTOBUF_EXPORT UninterpretedOption_NamePart final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_name_part(Arg_&& arg, Args_... args);
   std::string* mutable_name_part();
-  PROTOBUF_NODISCARD std::string* release_name_part();
+  [[nodiscard]] std::string* release_name_part();
   void set_allocated_name_part(std::string* value);
 
   private:
   const std::string& _internal_name_part() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_name_part(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_name_part(const std::string& value);
   std::string* _internal_mutable_name_part();
 
   public:
@@ -1311,13 +1310,12 @@ class PROTOBUF_EXPORT SourceCodeInfo_Location final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_leading_comments(Arg_&& arg, Args_... args);
   std::string* mutable_leading_comments();
-  PROTOBUF_NODISCARD std::string* release_leading_comments();
+  [[nodiscard]] std::string* release_leading_comments();
   void set_allocated_leading_comments(std::string* value);
 
   private:
   const std::string& _internal_leading_comments() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_leading_comments(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_leading_comments(const std::string& value);
   std::string* _internal_mutable_leading_comments();
 
   public:
@@ -1328,13 +1326,12 @@ class PROTOBUF_EXPORT SourceCodeInfo_Location final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_trailing_comments(Arg_&& arg, Args_... args);
   std::string* mutable_trailing_comments();
-  PROTOBUF_NODISCARD std::string* release_trailing_comments();
+  [[nodiscard]] std::string* release_trailing_comments();
   void set_allocated_trailing_comments(std::string* value);
 
   private:
   const std::string& _internal_trailing_comments() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_trailing_comments(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_trailing_comments(const std::string& value);
   std::string* _internal_mutable_trailing_comments();
 
   public:
@@ -1578,13 +1575,12 @@ class PROTOBUF_EXPORT GeneratedCodeInfo_Annotation final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_source_file(Arg_&& arg, Args_... args);
   std::string* mutable_source_file();
-  PROTOBUF_NODISCARD std::string* release_source_file();
+  [[nodiscard]] std::string* release_source_file();
   void set_allocated_source_file(std::string* value);
 
   private:
   const std::string& _internal_source_file() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_source_file(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_source_file(const std::string& value);
   std::string* _internal_mutable_source_file();
 
   public:
@@ -1821,13 +1817,12 @@ class PROTOBUF_EXPORT FieldOptions_FeatureSupport final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_deprecation_warning(Arg_&& arg, Args_... args);
   std::string* mutable_deprecation_warning();
-  PROTOBUF_NODISCARD std::string* release_deprecation_warning();
+  [[nodiscard]] std::string* release_deprecation_warning();
   void set_allocated_deprecation_warning(std::string* value);
 
   private:
   const std::string& _internal_deprecation_warning() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_deprecation_warning(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_deprecation_warning(const std::string& value);
   std::string* _internal_mutable_deprecation_warning();
 
   public:
@@ -2060,13 +2055,12 @@ class PROTOBUF_EXPORT FieldOptions_EditionDefault final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_value(Arg_&& arg, Args_... args);
   std::string* mutable_value();
-  PROTOBUF_NODISCARD std::string* release_value();
+  [[nodiscard]] std::string* release_value();
   void set_allocated_value(std::string* value);
 
   private:
   const std::string& _internal_value() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_value(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_value(const std::string& value);
   std::string* _internal_mutable_value();
 
   public:
@@ -2547,11 +2541,9 @@ class PROTOBUF_EXPORT FeatureSet final
   }
   template <typename _proto_TypeTraits, ::google::protobuf::internal::FieldType _field_type,
             bool _is_packed>
-  PROTOBUF_NODISCARD inline
-      typename _proto_TypeTraits::Singular::MutableType
-      ReleaseExtension(
-          const ::google::protobuf::internal::ExtensionIdentifier<FeatureSet, _proto_TypeTraits,
-                                           _field_type, _is_packed>& id) {
+  [[nodiscard]] inline typename _proto_TypeTraits::Singular::MutableType
+  ReleaseExtension(const ::google::protobuf::internal::ExtensionIdentifier<
+                   FeatureSet, _proto_TypeTraits, _field_type, _is_packed>& id) {
     return _proto_TypeTraits::Release(id.number(), _field_type, &_impl_._extensions_);
   }
   template <typename _proto_TypeTraits, ::google::protobuf::internal::FieldType _field_type,
@@ -2845,13 +2837,12 @@ class PROTOBUF_EXPORT ExtensionRangeOptions_Declaration final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_full_name(Arg_&& arg, Args_... args);
   std::string* mutable_full_name();
-  PROTOBUF_NODISCARD std::string* release_full_name();
+  [[nodiscard]] std::string* release_full_name();
   void set_allocated_full_name(std::string* value);
 
   private:
   const std::string& _internal_full_name() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_full_name(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_full_name(const std::string& value);
   std::string* _internal_mutable_full_name();
 
   public:
@@ -2862,13 +2853,12 @@ class PROTOBUF_EXPORT ExtensionRangeOptions_Declaration final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_type(Arg_&& arg, Args_... args);
   std::string* mutable_type();
-  PROTOBUF_NODISCARD std::string* release_type();
+  [[nodiscard]] std::string* release_type();
   void set_allocated_type(std::string* value);
 
   private:
   const std::string& _internal_type() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_type(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_type(const std::string& value);
   std::string* _internal_mutable_type();
 
   public:
@@ -3548,13 +3538,12 @@ class PROTOBUF_EXPORT UninterpretedOption final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_identifier_value(Arg_&& arg, Args_... args);
   std::string* mutable_identifier_value();
-  PROTOBUF_NODISCARD std::string* release_identifier_value();
+  [[nodiscard]] std::string* release_identifier_value();
   void set_allocated_identifier_value(std::string* value);
 
   private:
   const std::string& _internal_identifier_value() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_identifier_value(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_identifier_value(const std::string& value);
   std::string* _internal_mutable_identifier_value();
 
   public:
@@ -3565,13 +3554,12 @@ class PROTOBUF_EXPORT UninterpretedOption final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_string_value(Arg_&& arg, Args_... args);
   std::string* mutable_string_value();
-  PROTOBUF_NODISCARD std::string* release_string_value();
+  [[nodiscard]] std::string* release_string_value();
   void set_allocated_string_value(std::string* value);
 
   private:
   const std::string& _internal_string_value() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_string_value(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_string_value(const std::string& value);
   std::string* _internal_mutable_string_value();
 
   public:
@@ -3582,13 +3570,12 @@ class PROTOBUF_EXPORT UninterpretedOption final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_aggregate_value(Arg_&& arg, Args_... args);
   std::string* mutable_aggregate_value();
-  PROTOBUF_NODISCARD std::string* release_aggregate_value();
+  [[nodiscard]] std::string* release_aggregate_value();
   void set_allocated_aggregate_value(std::string* value);
 
   private:
   const std::string& _internal_aggregate_value() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_aggregate_value(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_aggregate_value(const std::string& value);
   std::string* _internal_mutable_aggregate_value();
 
   public:
@@ -3922,11 +3909,9 @@ class PROTOBUF_EXPORT SourceCodeInfo final
   }
   template <typename _proto_TypeTraits, ::google::protobuf::internal::FieldType _field_type,
             bool _is_packed>
-  PROTOBUF_NODISCARD inline
-      typename _proto_TypeTraits::Singular::MutableType
-      ReleaseExtension(
-          const ::google::protobuf::internal::ExtensionIdentifier<SourceCodeInfo, _proto_TypeTraits,
-                                           _field_type, _is_packed>& id) {
+  [[nodiscard]] inline typename _proto_TypeTraits::Singular::MutableType
+  ReleaseExtension(const ::google::protobuf::internal::ExtensionIdentifier<
+                   SourceCodeInfo, _proto_TypeTraits, _field_type, _is_packed>& id) {
     return _proto_TypeTraits::Release(id.number(), _field_type, &_impl_._extensions_);
   }
   template <typename _proto_TypeTraits, ::google::protobuf::internal::FieldType _field_type,
@@ -4416,7 +4401,7 @@ class PROTOBUF_EXPORT FeatureSetDefaults_FeatureSetEditionDefault final
   bool has_overridable_features() const;
   void clear_overridable_features() ;
   const ::google::protobuf::FeatureSet& overridable_features() const;
-  PROTOBUF_NODISCARD ::google::protobuf::FeatureSet* release_overridable_features();
+  [[nodiscard]] ::google::protobuf::FeatureSet* release_overridable_features();
   ::google::protobuf::FeatureSet* mutable_overridable_features();
   void set_allocated_overridable_features(::google::protobuf::FeatureSet* value);
   void unsafe_arena_set_allocated_overridable_features(::google::protobuf::FeatureSet* value);
@@ -4431,7 +4416,7 @@ class PROTOBUF_EXPORT FeatureSetDefaults_FeatureSetEditionDefault final
   bool has_fixed_features() const;
   void clear_fixed_features() ;
   const ::google::protobuf::FeatureSet& fixed_features() const;
-  PROTOBUF_NODISCARD ::google::protobuf::FeatureSet* release_fixed_features();
+  [[nodiscard]] ::google::protobuf::FeatureSet* release_fixed_features();
   ::google::protobuf::FeatureSet* mutable_fixed_features();
   void set_allocated_fixed_features(::google::protobuf::FeatureSet* value);
   void unsafe_arena_set_allocated_fixed_features(::google::protobuf::FeatureSet* value);
@@ -4668,7 +4653,7 @@ class PROTOBUF_EXPORT ServiceOptions final
   bool has_features() const;
   void clear_features() ;
   const ::google::protobuf::FeatureSet& features() const;
-  PROTOBUF_NODISCARD ::google::protobuf::FeatureSet* release_features();
+  [[nodiscard]] ::google::protobuf::FeatureSet* release_features();
   ::google::protobuf::FeatureSet* mutable_features();
   void set_allocated_features(::google::protobuf::FeatureSet* value);
   void unsafe_arena_set_allocated_features(::google::protobuf::FeatureSet* value);
@@ -4773,11 +4758,9 @@ class PROTOBUF_EXPORT ServiceOptions final
   }
   template <typename _proto_TypeTraits, ::google::protobuf::internal::FieldType _field_type,
             bool _is_packed>
-  PROTOBUF_NODISCARD inline
-      typename _proto_TypeTraits::Singular::MutableType
-      ReleaseExtension(
-          const ::google::protobuf::internal::ExtensionIdentifier<ServiceOptions, _proto_TypeTraits,
-                                           _field_type, _is_packed>& id) {
+  [[nodiscard]] inline typename _proto_TypeTraits::Singular::MutableType
+  ReleaseExtension(const ::google::protobuf::internal::ExtensionIdentifier<
+                   ServiceOptions, _proto_TypeTraits, _field_type, _is_packed>& id) {
     return _proto_TypeTraits::Release(id.number(), _field_type, &_impl_._extensions_);
   }
   template <typename _proto_TypeTraits, ::google::protobuf::internal::FieldType _field_type,
@@ -5084,7 +5067,7 @@ class PROTOBUF_EXPORT OneofOptions final
   bool has_features() const;
   void clear_features() ;
   const ::google::protobuf::FeatureSet& features() const;
-  PROTOBUF_NODISCARD ::google::protobuf::FeatureSet* release_features();
+  [[nodiscard]] ::google::protobuf::FeatureSet* release_features();
   ::google::protobuf::FeatureSet* mutable_features();
   void set_allocated_features(::google::protobuf::FeatureSet* value);
   void unsafe_arena_set_allocated_features(::google::protobuf::FeatureSet* value);
@@ -5178,11 +5161,9 @@ class PROTOBUF_EXPORT OneofOptions final
   }
   template <typename _proto_TypeTraits, ::google::protobuf::internal::FieldType _field_type,
             bool _is_packed>
-  PROTOBUF_NODISCARD inline
-      typename _proto_TypeTraits::Singular::MutableType
-      ReleaseExtension(
-          const ::google::protobuf::internal::ExtensionIdentifier<OneofOptions, _proto_TypeTraits,
-                                           _field_type, _is_packed>& id) {
+  [[nodiscard]] inline typename _proto_TypeTraits::Singular::MutableType
+  ReleaseExtension(const ::google::protobuf::internal::ExtensionIdentifier<
+                   OneofOptions, _proto_TypeTraits, _field_type, _is_packed>& id) {
     return _proto_TypeTraits::Release(id.number(), _field_type, &_impl_._extensions_);
   }
   template <typename _proto_TypeTraits, ::google::protobuf::internal::FieldType _field_type,
@@ -5510,7 +5491,7 @@ class PROTOBUF_EXPORT MethodOptions final
   bool has_features() const;
   void clear_features() ;
   const ::google::protobuf::FeatureSet& features() const;
-  PROTOBUF_NODISCARD ::google::protobuf::FeatureSet* release_features();
+  [[nodiscard]] ::google::protobuf::FeatureSet* release_features();
   ::google::protobuf::FeatureSet* mutable_features();
   void set_allocated_features(::google::protobuf::FeatureSet* value);
   void unsafe_arena_set_allocated_features(::google::protobuf::FeatureSet* value);
@@ -5626,11 +5607,9 @@ class PROTOBUF_EXPORT MethodOptions final
   }
   template <typename _proto_TypeTraits, ::google::protobuf::internal::FieldType _field_type,
             bool _is_packed>
-  PROTOBUF_NODISCARD inline
-      typename _proto_TypeTraits::Singular::MutableType
-      ReleaseExtension(
-          const ::google::protobuf::internal::ExtensionIdentifier<MethodOptions, _proto_TypeTraits,
-                                           _field_type, _is_packed>& id) {
+  [[nodiscard]] inline typename _proto_TypeTraits::Singular::MutableType
+  ReleaseExtension(const ::google::protobuf::internal::ExtensionIdentifier<
+                   MethodOptions, _proto_TypeTraits, _field_type, _is_packed>& id) {
     return _proto_TypeTraits::Release(id.number(), _field_type, &_impl_._extensions_);
   }
   template <typename _proto_TypeTraits, ::google::protobuf::internal::FieldType _field_type,
@@ -5943,7 +5922,7 @@ class PROTOBUF_EXPORT MessageOptions final
   bool has_features() const;
   void clear_features() ;
   const ::google::protobuf::FeatureSet& features() const;
-  PROTOBUF_NODISCARD ::google::protobuf::FeatureSet* release_features();
+  [[nodiscard]] ::google::protobuf::FeatureSet* release_features();
   ::google::protobuf::FeatureSet* mutable_features();
   void set_allocated_features(::google::protobuf::FeatureSet* value);
   void unsafe_arena_set_allocated_features(::google::protobuf::FeatureSet* value);
@@ -6092,11 +6071,9 @@ class PROTOBUF_EXPORT MessageOptions final
   }
   template <typename _proto_TypeTraits, ::google::protobuf::internal::FieldType _field_type,
             bool _is_packed>
-  PROTOBUF_NODISCARD inline
-      typename _proto_TypeTraits::Singular::MutableType
-      ReleaseExtension(
-          const ::google::protobuf::internal::ExtensionIdentifier<MessageOptions, _proto_TypeTraits,
-                                           _field_type, _is_packed>& id) {
+  [[nodiscard]] inline typename _proto_TypeTraits::Singular::MutableType
+  ReleaseExtension(const ::google::protobuf::internal::ExtensionIdentifier<
+                   MessageOptions, _proto_TypeTraits, _field_type, _is_packed>& id) {
     return _proto_TypeTraits::Release(id.number(), _field_type, &_impl_._extensions_);
   }
   template <typename _proto_TypeTraits, ::google::protobuf::internal::FieldType _field_type,
@@ -6449,13 +6426,12 @@ class PROTOBUF_EXPORT FileOptions final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_java_package(Arg_&& arg, Args_... args);
   std::string* mutable_java_package();
-  PROTOBUF_NODISCARD std::string* release_java_package();
+  [[nodiscard]] std::string* release_java_package();
   void set_allocated_java_package(std::string* value);
 
   private:
   const std::string& _internal_java_package() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_java_package(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_java_package(const std::string& value);
   std::string* _internal_mutable_java_package();
 
   public:
@@ -6466,13 +6442,12 @@ class PROTOBUF_EXPORT FileOptions final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_java_outer_classname(Arg_&& arg, Args_... args);
   std::string* mutable_java_outer_classname();
-  PROTOBUF_NODISCARD std::string* release_java_outer_classname();
+  [[nodiscard]] std::string* release_java_outer_classname();
   void set_allocated_java_outer_classname(std::string* value);
 
   private:
   const std::string& _internal_java_outer_classname() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_java_outer_classname(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_java_outer_classname(const std::string& value);
   std::string* _internal_mutable_java_outer_classname();
 
   public:
@@ -6483,13 +6458,12 @@ class PROTOBUF_EXPORT FileOptions final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_go_package(Arg_&& arg, Args_... args);
   std::string* mutable_go_package();
-  PROTOBUF_NODISCARD std::string* release_go_package();
+  [[nodiscard]] std::string* release_go_package();
   void set_allocated_go_package(std::string* value);
 
   private:
   const std::string& _internal_go_package() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_go_package(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_go_package(const std::string& value);
   std::string* _internal_mutable_go_package();
 
   public:
@@ -6500,13 +6474,12 @@ class PROTOBUF_EXPORT FileOptions final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_objc_class_prefix(Arg_&& arg, Args_... args);
   std::string* mutable_objc_class_prefix();
-  PROTOBUF_NODISCARD std::string* release_objc_class_prefix();
+  [[nodiscard]] std::string* release_objc_class_prefix();
   void set_allocated_objc_class_prefix(std::string* value);
 
   private:
   const std::string& _internal_objc_class_prefix() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_objc_class_prefix(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_objc_class_prefix(const std::string& value);
   std::string* _internal_mutable_objc_class_prefix();
 
   public:
@@ -6517,13 +6490,12 @@ class PROTOBUF_EXPORT FileOptions final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_csharp_namespace(Arg_&& arg, Args_... args);
   std::string* mutable_csharp_namespace();
-  PROTOBUF_NODISCARD std::string* release_csharp_namespace();
+  [[nodiscard]] std::string* release_csharp_namespace();
   void set_allocated_csharp_namespace(std::string* value);
 
   private:
   const std::string& _internal_csharp_namespace() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_csharp_namespace(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_csharp_namespace(const std::string& value);
   std::string* _internal_mutable_csharp_namespace();
 
   public:
@@ -6534,13 +6506,12 @@ class PROTOBUF_EXPORT FileOptions final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_swift_prefix(Arg_&& arg, Args_... args);
   std::string* mutable_swift_prefix();
-  PROTOBUF_NODISCARD std::string* release_swift_prefix();
+  [[nodiscard]] std::string* release_swift_prefix();
   void set_allocated_swift_prefix(std::string* value);
 
   private:
   const std::string& _internal_swift_prefix() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_swift_prefix(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_swift_prefix(const std::string& value);
   std::string* _internal_mutable_swift_prefix();
 
   public:
@@ -6551,13 +6522,12 @@ class PROTOBUF_EXPORT FileOptions final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_php_class_prefix(Arg_&& arg, Args_... args);
   std::string* mutable_php_class_prefix();
-  PROTOBUF_NODISCARD std::string* release_php_class_prefix();
+  [[nodiscard]] std::string* release_php_class_prefix();
   void set_allocated_php_class_prefix(std::string* value);
 
   private:
   const std::string& _internal_php_class_prefix() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_php_class_prefix(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_php_class_prefix(const std::string& value);
   std::string* _internal_mutable_php_class_prefix();
 
   public:
@@ -6568,13 +6538,12 @@ class PROTOBUF_EXPORT FileOptions final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_php_namespace(Arg_&& arg, Args_... args);
   std::string* mutable_php_namespace();
-  PROTOBUF_NODISCARD std::string* release_php_namespace();
+  [[nodiscard]] std::string* release_php_namespace();
   void set_allocated_php_namespace(std::string* value);
 
   private:
   const std::string& _internal_php_namespace() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_php_namespace(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_php_namespace(const std::string& value);
   std::string* _internal_mutable_php_namespace();
 
   public:
@@ -6585,13 +6554,12 @@ class PROTOBUF_EXPORT FileOptions final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_php_metadata_namespace(Arg_&& arg, Args_... args);
   std::string* mutable_php_metadata_namespace();
-  PROTOBUF_NODISCARD std::string* release_php_metadata_namespace();
+  [[nodiscard]] std::string* release_php_metadata_namespace();
   void set_allocated_php_metadata_namespace(std::string* value);
 
   private:
   const std::string& _internal_php_metadata_namespace() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_php_metadata_namespace(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_php_metadata_namespace(const std::string& value);
   std::string* _internal_mutable_php_metadata_namespace();
 
   public:
@@ -6602,13 +6570,12 @@ class PROTOBUF_EXPORT FileOptions final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_ruby_package(Arg_&& arg, Args_... args);
   std::string* mutable_ruby_package();
-  PROTOBUF_NODISCARD std::string* release_ruby_package();
+  [[nodiscard]] std::string* release_ruby_package();
   void set_allocated_ruby_package(std::string* value);
 
   private:
   const std::string& _internal_ruby_package() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_ruby_package(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_ruby_package(const std::string& value);
   std::string* _internal_mutable_ruby_package();
 
   public:
@@ -6616,7 +6583,7 @@ class PROTOBUF_EXPORT FileOptions final
   bool has_features() const;
   void clear_features() ;
   const ::google::protobuf::FeatureSet& features() const;
-  PROTOBUF_NODISCARD ::google::protobuf::FeatureSet* release_features();
+  [[nodiscard]] ::google::protobuf::FeatureSet* release_features();
   ::google::protobuf::FeatureSet* mutable_features();
   void set_allocated_features(::google::protobuf::FeatureSet* value);
   void unsafe_arena_set_allocated_features(::google::protobuf::FeatureSet* value);
@@ -6809,11 +6776,9 @@ class PROTOBUF_EXPORT FileOptions final
   }
   template <typename _proto_TypeTraits, ::google::protobuf::internal::FieldType _field_type,
             bool _is_packed>
-  PROTOBUF_NODISCARD inline
-      typename _proto_TypeTraits::Singular::MutableType
-      ReleaseExtension(
-          const ::google::protobuf::internal::ExtensionIdentifier<FileOptions, _proto_TypeTraits,
-                                           _field_type, _is_packed>& id) {
+  [[nodiscard]] inline typename _proto_TypeTraits::Singular::MutableType
+  ReleaseExtension(const ::google::protobuf::internal::ExtensionIdentifier<
+                   FileOptions, _proto_TypeTraits, _field_type, _is_packed>& id) {
     return _proto_TypeTraits::Release(id.number(), _field_type, &_impl_._extensions_);
   }
   template <typename _proto_TypeTraits, ::google::protobuf::internal::FieldType _field_type,
@@ -7275,7 +7240,7 @@ class PROTOBUF_EXPORT FieldOptions final
   bool has_features() const;
   void clear_features() ;
   const ::google::protobuf::FeatureSet& features() const;
-  PROTOBUF_NODISCARD ::google::protobuf::FeatureSet* release_features();
+  [[nodiscard]] ::google::protobuf::FeatureSet* release_features();
   ::google::protobuf::FeatureSet* mutable_features();
   void set_allocated_features(::google::protobuf::FeatureSet* value);
   void unsafe_arena_set_allocated_features(::google::protobuf::FeatureSet* value);
@@ -7290,7 +7255,7 @@ class PROTOBUF_EXPORT FieldOptions final
   bool has_feature_support() const;
   void clear_feature_support() ;
   const ::google::protobuf::FieldOptions_FeatureSupport& feature_support() const;
-  PROTOBUF_NODISCARD ::google::protobuf::FieldOptions_FeatureSupport* release_feature_support();
+  [[nodiscard]] ::google::protobuf::FieldOptions_FeatureSupport* release_feature_support();
   ::google::protobuf::FieldOptions_FeatureSupport* mutable_feature_support();
   void set_allocated_feature_support(::google::protobuf::FieldOptions_FeatureSupport* value);
   void unsafe_arena_set_allocated_feature_support(::google::protobuf::FieldOptions_FeatureSupport* value);
@@ -7483,11 +7448,9 @@ class PROTOBUF_EXPORT FieldOptions final
   }
   template <typename _proto_TypeTraits, ::google::protobuf::internal::FieldType _field_type,
             bool _is_packed>
-  PROTOBUF_NODISCARD inline
-      typename _proto_TypeTraits::Singular::MutableType
-      ReleaseExtension(
-          const ::google::protobuf::internal::ExtensionIdentifier<FieldOptions, _proto_TypeTraits,
-                                           _field_type, _is_packed>& id) {
+  [[nodiscard]] inline typename _proto_TypeTraits::Singular::MutableType
+  ReleaseExtension(const ::google::protobuf::internal::ExtensionIdentifier<
+                   FieldOptions, _proto_TypeTraits, _field_type, _is_packed>& id) {
     return _proto_TypeTraits::Release(id.number(), _field_type, &_impl_._extensions_);
   }
   template <typename _proto_TypeTraits, ::google::protobuf::internal::FieldType _field_type,
@@ -8078,7 +8041,7 @@ class PROTOBUF_EXPORT ExtensionRangeOptions final
   bool has_features() const;
   void clear_features() ;
   const ::google::protobuf::FeatureSet& features() const;
-  PROTOBUF_NODISCARD ::google::protobuf::FeatureSet* release_features();
+  [[nodiscard]] ::google::protobuf::FeatureSet* release_features();
   ::google::protobuf::FeatureSet* mutable_features();
   void set_allocated_features(::google::protobuf::FeatureSet* value);
   void unsafe_arena_set_allocated_features(::google::protobuf::FeatureSet* value);
@@ -8183,11 +8146,9 @@ class PROTOBUF_EXPORT ExtensionRangeOptions final
   }
   template <typename _proto_TypeTraits, ::google::protobuf::internal::FieldType _field_type,
             bool _is_packed>
-  PROTOBUF_NODISCARD inline
-      typename _proto_TypeTraits::Singular::MutableType
-      ReleaseExtension(
-          const ::google::protobuf::internal::ExtensionIdentifier<ExtensionRangeOptions, _proto_TypeTraits,
-                                           _field_type, _is_packed>& id) {
+  [[nodiscard]] inline typename _proto_TypeTraits::Singular::MutableType
+  ReleaseExtension(const ::google::protobuf::internal::ExtensionIdentifier<
+                   ExtensionRangeOptions, _proto_TypeTraits, _field_type, _is_packed>& id) {
     return _proto_TypeTraits::Release(id.number(), _field_type, &_impl_._extensions_);
   }
   template <typename _proto_TypeTraits, ::google::protobuf::internal::FieldType _field_type,
@@ -8498,7 +8459,7 @@ class PROTOBUF_EXPORT EnumValueOptions final
   bool has_features() const;
   void clear_features() ;
   const ::google::protobuf::FeatureSet& features() const;
-  PROTOBUF_NODISCARD ::google::protobuf::FeatureSet* release_features();
+  [[nodiscard]] ::google::protobuf::FeatureSet* release_features();
   ::google::protobuf::FeatureSet* mutable_features();
   void set_allocated_features(::google::protobuf::FeatureSet* value);
   void unsafe_arena_set_allocated_features(::google::protobuf::FeatureSet* value);
@@ -8513,7 +8474,7 @@ class PROTOBUF_EXPORT EnumValueOptions final
   bool has_feature_support() const;
   void clear_feature_support() ;
   const ::google::protobuf::FieldOptions_FeatureSupport& feature_support() const;
-  PROTOBUF_NODISCARD ::google::protobuf::FieldOptions_FeatureSupport* release_feature_support();
+  [[nodiscard]] ::google::protobuf::FieldOptions_FeatureSupport* release_feature_support();
   ::google::protobuf::FieldOptions_FeatureSupport* mutable_feature_support();
   void set_allocated_feature_support(::google::protobuf::FieldOptions_FeatureSupport* value);
   void unsafe_arena_set_allocated_feature_support(::google::protobuf::FieldOptions_FeatureSupport* value);
@@ -8629,11 +8590,9 @@ class PROTOBUF_EXPORT EnumValueOptions final
   }
   template <typename _proto_TypeTraits, ::google::protobuf::internal::FieldType _field_type,
             bool _is_packed>
-  PROTOBUF_NODISCARD inline
-      typename _proto_TypeTraits::Singular::MutableType
-      ReleaseExtension(
-          const ::google::protobuf::internal::ExtensionIdentifier<EnumValueOptions, _proto_TypeTraits,
-                                           _field_type, _is_packed>& id) {
+  [[nodiscard]] inline typename _proto_TypeTraits::Singular::MutableType
+  ReleaseExtension(const ::google::protobuf::internal::ExtensionIdentifier<
+                   EnumValueOptions, _proto_TypeTraits, _field_type, _is_packed>& id) {
     return _proto_TypeTraits::Release(id.number(), _field_type, &_impl_._extensions_);
   }
   template <typename _proto_TypeTraits, ::google::protobuf::internal::FieldType _field_type,
@@ -8945,7 +8904,7 @@ class PROTOBUF_EXPORT EnumOptions final
   bool has_features() const;
   void clear_features() ;
   const ::google::protobuf::FeatureSet& features() const;
-  PROTOBUF_NODISCARD ::google::protobuf::FeatureSet* release_features();
+  [[nodiscard]] ::google::protobuf::FeatureSet* release_features();
   ::google::protobuf::FeatureSet* mutable_features();
   void set_allocated_features(::google::protobuf::FeatureSet* value);
   void unsafe_arena_set_allocated_features(::google::protobuf::FeatureSet* value);
@@ -9072,11 +9031,9 @@ class PROTOBUF_EXPORT EnumOptions final
   }
   template <typename _proto_TypeTraits, ::google::protobuf::internal::FieldType _field_type,
             bool _is_packed>
-  PROTOBUF_NODISCARD inline
-      typename _proto_TypeTraits::Singular::MutableType
-      ReleaseExtension(
-          const ::google::protobuf::internal::ExtensionIdentifier<EnumOptions, _proto_TypeTraits,
-                                           _field_type, _is_packed>& id) {
+  [[nodiscard]] inline typename _proto_TypeTraits::Singular::MutableType
+  ReleaseExtension(const ::google::protobuf::internal::ExtensionIdentifier<
+                   EnumOptions, _proto_TypeTraits, _field_type, _is_packed>& id) {
     return _proto_TypeTraits::Release(id.number(), _field_type, &_impl_._extensions_);
   }
   template <typename _proto_TypeTraits, ::google::protobuf::internal::FieldType _field_type,
@@ -9371,13 +9328,12 @@ class PROTOBUF_EXPORT OneofDescriptorProto final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_name(Arg_&& arg, Args_... args);
   std::string* mutable_name();
-  PROTOBUF_NODISCARD std::string* release_name();
+  [[nodiscard]] std::string* release_name();
   void set_allocated_name(std::string* value);
 
   private:
   const std::string& _internal_name() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_name(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_name(const std::string& value);
   std::string* _internal_mutable_name();
 
   public:
@@ -9385,7 +9341,7 @@ class PROTOBUF_EXPORT OneofDescriptorProto final
   bool has_options() const;
   void clear_options() ;
   const ::google::protobuf::OneofOptions& options() const;
-  PROTOBUF_NODISCARD ::google::protobuf::OneofOptions* release_options();
+  [[nodiscard]] ::google::protobuf::OneofOptions* release_options();
   ::google::protobuf::OneofOptions* mutable_options();
   void set_allocated_options(::google::protobuf::OneofOptions* value);
   void unsafe_arena_set_allocated_options(::google::protobuf::OneofOptions* value);
@@ -9599,13 +9555,12 @@ class PROTOBUF_EXPORT MethodDescriptorProto final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_name(Arg_&& arg, Args_... args);
   std::string* mutable_name();
-  PROTOBUF_NODISCARD std::string* release_name();
+  [[nodiscard]] std::string* release_name();
   void set_allocated_name(std::string* value);
 
   private:
   const std::string& _internal_name() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_name(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_name(const std::string& value);
   std::string* _internal_mutable_name();
 
   public:
@@ -9616,13 +9571,12 @@ class PROTOBUF_EXPORT MethodDescriptorProto final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_input_type(Arg_&& arg, Args_... args);
   std::string* mutable_input_type();
-  PROTOBUF_NODISCARD std::string* release_input_type();
+  [[nodiscard]] std::string* release_input_type();
   void set_allocated_input_type(std::string* value);
 
   private:
   const std::string& _internal_input_type() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_input_type(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_input_type(const std::string& value);
   std::string* _internal_mutable_input_type();
 
   public:
@@ -9633,13 +9587,12 @@ class PROTOBUF_EXPORT MethodDescriptorProto final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_output_type(Arg_&& arg, Args_... args);
   std::string* mutable_output_type();
-  PROTOBUF_NODISCARD std::string* release_output_type();
+  [[nodiscard]] std::string* release_output_type();
   void set_allocated_output_type(std::string* value);
 
   private:
   const std::string& _internal_output_type() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_output_type(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_output_type(const std::string& value);
   std::string* _internal_mutable_output_type();
 
   public:
@@ -9647,7 +9600,7 @@ class PROTOBUF_EXPORT MethodDescriptorProto final
   bool has_options() const;
   void clear_options() ;
   const ::google::protobuf::MethodOptions& options() const;
-  PROTOBUF_NODISCARD ::google::protobuf::MethodOptions* release_options();
+  [[nodiscard]] ::google::protobuf::MethodOptions* release_options();
   ::google::protobuf::MethodOptions* mutable_options();
   void set_allocated_options(::google::protobuf::MethodOptions* value);
   void unsafe_arena_set_allocated_options(::google::protobuf::MethodOptions* value);
@@ -9947,13 +9900,12 @@ class PROTOBUF_EXPORT FieldDescriptorProto final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_name(Arg_&& arg, Args_... args);
   std::string* mutable_name();
-  PROTOBUF_NODISCARD std::string* release_name();
+  [[nodiscard]] std::string* release_name();
   void set_allocated_name(std::string* value);
 
   private:
   const std::string& _internal_name() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_name(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_name(const std::string& value);
   std::string* _internal_mutable_name();
 
   public:
@@ -9964,13 +9916,12 @@ class PROTOBUF_EXPORT FieldDescriptorProto final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_extendee(Arg_&& arg, Args_... args);
   std::string* mutable_extendee();
-  PROTOBUF_NODISCARD std::string* release_extendee();
+  [[nodiscard]] std::string* release_extendee();
   void set_allocated_extendee(std::string* value);
 
   private:
   const std::string& _internal_extendee() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_extendee(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_extendee(const std::string& value);
   std::string* _internal_mutable_extendee();
 
   public:
@@ -9981,13 +9932,12 @@ class PROTOBUF_EXPORT FieldDescriptorProto final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_type_name(Arg_&& arg, Args_... args);
   std::string* mutable_type_name();
-  PROTOBUF_NODISCARD std::string* release_type_name();
+  [[nodiscard]] std::string* release_type_name();
   void set_allocated_type_name(std::string* value);
 
   private:
   const std::string& _internal_type_name() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_type_name(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_type_name(const std::string& value);
   std::string* _internal_mutable_type_name();
 
   public:
@@ -9998,13 +9948,12 @@ class PROTOBUF_EXPORT FieldDescriptorProto final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_default_value(Arg_&& arg, Args_... args);
   std::string* mutable_default_value();
-  PROTOBUF_NODISCARD std::string* release_default_value();
+  [[nodiscard]] std::string* release_default_value();
   void set_allocated_default_value(std::string* value);
 
   private:
   const std::string& _internal_default_value() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_default_value(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_default_value(const std::string& value);
   std::string* _internal_mutable_default_value();
 
   public:
@@ -10015,13 +9964,12 @@ class PROTOBUF_EXPORT FieldDescriptorProto final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_json_name(Arg_&& arg, Args_... args);
   std::string* mutable_json_name();
-  PROTOBUF_NODISCARD std::string* release_json_name();
+  [[nodiscard]] std::string* release_json_name();
   void set_allocated_json_name(std::string* value);
 
   private:
   const std::string& _internal_json_name() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_json_name(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_json_name(const std::string& value);
   std::string* _internal_mutable_json_name();
 
   public:
@@ -10029,7 +9977,7 @@ class PROTOBUF_EXPORT FieldDescriptorProto final
   bool has_options() const;
   void clear_options() ;
   const ::google::protobuf::FieldOptions& options() const;
-  PROTOBUF_NODISCARD ::google::protobuf::FieldOptions* release_options();
+  [[nodiscard]] ::google::protobuf::FieldOptions* release_options();
   ::google::protobuf::FieldOptions* mutable_options();
   void set_allocated_options(::google::protobuf::FieldOptions* value);
   void unsafe_arena_set_allocated_options(::google::protobuf::FieldOptions* value);
@@ -10304,13 +10252,12 @@ class PROTOBUF_EXPORT EnumValueDescriptorProto final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_name(Arg_&& arg, Args_... args);
   std::string* mutable_name();
-  PROTOBUF_NODISCARD std::string* release_name();
+  [[nodiscard]] std::string* release_name();
   void set_allocated_name(std::string* value);
 
   private:
   const std::string& _internal_name() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_name(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_name(const std::string& value);
   std::string* _internal_mutable_name();
 
   public:
@@ -10318,7 +10265,7 @@ class PROTOBUF_EXPORT EnumValueDescriptorProto final
   bool has_options() const;
   void clear_options() ;
   const ::google::protobuf::EnumValueOptions& options() const;
-  PROTOBUF_NODISCARD ::google::protobuf::EnumValueOptions* release_options();
+  [[nodiscard]] ::google::protobuf::EnumValueOptions* release_options();
   ::google::protobuf::EnumValueOptions* mutable_options();
   void set_allocated_options(::google::protobuf::EnumValueOptions* value);
   void unsafe_arena_set_allocated_options(::google::protobuf::EnumValueOptions* value);
@@ -10538,7 +10485,7 @@ class PROTOBUF_EXPORT DescriptorProto_ExtensionRange final
   bool has_options() const;
   void clear_options() ;
   const ::google::protobuf::ExtensionRangeOptions& options() const;
-  PROTOBUF_NODISCARD ::google::protobuf::ExtensionRangeOptions* release_options();
+  [[nodiscard]] ::google::protobuf::ExtensionRangeOptions* release_options();
   ::google::protobuf::ExtensionRangeOptions* mutable_options();
   void set_allocated_options(::google::protobuf::ExtensionRangeOptions* value);
   void unsafe_arena_set_allocated_options(::google::protobuf::ExtensionRangeOptions* value);
@@ -10789,13 +10736,12 @@ class PROTOBUF_EXPORT ServiceDescriptorProto final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_name(Arg_&& arg, Args_... args);
   std::string* mutable_name();
-  PROTOBUF_NODISCARD std::string* release_name();
+  [[nodiscard]] std::string* release_name();
   void set_allocated_name(std::string* value);
 
   private:
   const std::string& _internal_name() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_name(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_name(const std::string& value);
   std::string* _internal_mutable_name();
 
   public:
@@ -10803,7 +10749,7 @@ class PROTOBUF_EXPORT ServiceDescriptorProto final
   bool has_options() const;
   void clear_options() ;
   const ::google::protobuf::ServiceOptions& options() const;
-  PROTOBUF_NODISCARD ::google::protobuf::ServiceOptions* release_options();
+  [[nodiscard]] ::google::protobuf::ServiceOptions* release_options();
   ::google::protobuf::ServiceOptions* mutable_options();
   void set_allocated_options(::google::protobuf::ServiceOptions* value);
   void unsafe_arena_set_allocated_options(::google::protobuf::ServiceOptions* value);
@@ -11074,13 +11020,12 @@ class PROTOBUF_EXPORT EnumDescriptorProto final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_name(Arg_&& arg, Args_... args);
   std::string* mutable_name();
-  PROTOBUF_NODISCARD std::string* release_name();
+  [[nodiscard]] std::string* release_name();
   void set_allocated_name(std::string* value);
 
   private:
   const std::string& _internal_name() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_name(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_name(const std::string& value);
   std::string* _internal_mutable_name();
 
   public:
@@ -11088,7 +11033,7 @@ class PROTOBUF_EXPORT EnumDescriptorProto final
   bool has_options() const;
   void clear_options() ;
   const ::google::protobuf::EnumOptions& options() const;
-  PROTOBUF_NODISCARD ::google::protobuf::EnumOptions* release_options();
+  [[nodiscard]] ::google::protobuf::EnumOptions* release_options();
   ::google::protobuf::EnumOptions* mutable_options();
   void set_allocated_options(::google::protobuf::EnumOptions* value);
   void unsafe_arena_set_allocated_options(::google::protobuf::EnumOptions* value);
@@ -11452,13 +11397,12 @@ class PROTOBUF_EXPORT DescriptorProto final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_name(Arg_&& arg, Args_... args);
   std::string* mutable_name();
-  PROTOBUF_NODISCARD std::string* release_name();
+  [[nodiscard]] std::string* release_name();
   void set_allocated_name(std::string* value);
 
   private:
   const std::string& _internal_name() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_name(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_name(const std::string& value);
   std::string* _internal_mutable_name();
 
   public:
@@ -11466,7 +11410,7 @@ class PROTOBUF_EXPORT DescriptorProto final
   bool has_options() const;
   void clear_options() ;
   const ::google::protobuf::MessageOptions& options() const;
-  PROTOBUF_NODISCARD ::google::protobuf::MessageOptions* release_options();
+  [[nodiscard]] ::google::protobuf::MessageOptions* release_options();
   ::google::protobuf::MessageOptions* mutable_options();
   void set_allocated_options(::google::protobuf::MessageOptions* value);
   void unsafe_arena_set_allocated_options(::google::protobuf::MessageOptions* value);
@@ -11821,13 +11765,12 @@ class PROTOBUF_EXPORT FileDescriptorProto final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_name(Arg_&& arg, Args_... args);
   std::string* mutable_name();
-  PROTOBUF_NODISCARD std::string* release_name();
+  [[nodiscard]] std::string* release_name();
   void set_allocated_name(std::string* value);
 
   private:
   const std::string& _internal_name() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_name(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_name(const std::string& value);
   std::string* _internal_mutable_name();
 
   public:
@@ -11838,13 +11781,12 @@ class PROTOBUF_EXPORT FileDescriptorProto final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_package(Arg_&& arg, Args_... args);
   std::string* mutable_package();
-  PROTOBUF_NODISCARD std::string* release_package();
+  [[nodiscard]] std::string* release_package();
   void set_allocated_package(std::string* value);
 
   private:
   const std::string& _internal_package() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_package(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_package(const std::string& value);
   std::string* _internal_mutable_package();
 
   public:
@@ -11855,13 +11797,12 @@ class PROTOBUF_EXPORT FileDescriptorProto final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_syntax(Arg_&& arg, Args_... args);
   std::string* mutable_syntax();
-  PROTOBUF_NODISCARD std::string* release_syntax();
+  [[nodiscard]] std::string* release_syntax();
   void set_allocated_syntax(std::string* value);
 
   private:
   const std::string& _internal_syntax() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_syntax(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_syntax(const std::string& value);
   std::string* _internal_mutable_syntax();
 
   public:
@@ -11869,7 +11810,7 @@ class PROTOBUF_EXPORT FileDescriptorProto final
   bool has_options() const;
   void clear_options() ;
   const ::google::protobuf::FileOptions& options() const;
-  PROTOBUF_NODISCARD ::google::protobuf::FileOptions* release_options();
+  [[nodiscard]] ::google::protobuf::FileOptions* release_options();
   ::google::protobuf::FileOptions* mutable_options();
   void set_allocated_options(::google::protobuf::FileOptions* value);
   void unsafe_arena_set_allocated_options(::google::protobuf::FileOptions* value);
@@ -11884,7 +11825,7 @@ class PROTOBUF_EXPORT FileDescriptorProto final
   bool has_source_code_info() const;
   void clear_source_code_info() ;
   const ::google::protobuf::SourceCodeInfo& source_code_info() const;
-  PROTOBUF_NODISCARD ::google::protobuf::SourceCodeInfo* release_source_code_info();
+  [[nodiscard]] ::google::protobuf::SourceCodeInfo* release_source_code_info();
   ::google::protobuf::SourceCodeInfo* mutable_source_code_info();
   void set_allocated_source_code_info(::google::protobuf::SourceCodeInfo* value);
   void unsafe_arena_set_allocated_source_code_info(::google::protobuf::SourceCodeInfo* value);
@@ -12208,11 +12149,9 @@ class PROTOBUF_EXPORT FileDescriptorSet final
   }
   template <typename _proto_TypeTraits, ::google::protobuf::internal::FieldType _field_type,
             bool _is_packed>
-  PROTOBUF_NODISCARD inline
-      typename _proto_TypeTraits::Singular::MutableType
-      ReleaseExtension(
-          const ::google::protobuf::internal::ExtensionIdentifier<FileDescriptorSet, _proto_TypeTraits,
-                                           _field_type, _is_packed>& id) {
+  [[nodiscard]] inline typename _proto_TypeTraits::Singular::MutableType
+  ReleaseExtension(const ::google::protobuf::internal::ExtensionIdentifier<
+                   FileDescriptorSet, _proto_TypeTraits, _field_type, _is_packed>& id) {
     return _proto_TypeTraits::Release(id.number(), _field_type, &_impl_._extensions_);
   }
   template <typename _proto_TypeTraits, ::google::protobuf::internal::FieldType _field_type,
@@ -12423,8 +12362,8 @@ inline const std::string& FileDescriptorProto::name() const
   return _internal_name();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void FileDescriptorProto::set_name(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void FileDescriptorProto::set_name(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000001u;
   _impl_.name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -12492,8 +12431,8 @@ inline const std::string& FileDescriptorProto::package() const
   return _internal_package();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void FileDescriptorProto::set_package(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void FileDescriptorProto::set_package(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000002u;
   _impl_.package_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -13103,8 +13042,8 @@ inline const std::string& FileDescriptorProto::syntax() const
   return _internal_syntax();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void FileDescriptorProto::set_syntax(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void FileDescriptorProto::set_syntax(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000004u;
   _impl_.syntax_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -13421,8 +13360,8 @@ inline const std::string& DescriptorProto::name() const
   return _internal_name();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void DescriptorProto::set_name(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void DescriptorProto::set_name(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000001u;
   _impl_.name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -14025,8 +13964,8 @@ inline const std::string& ExtensionRangeOptions_Declaration::full_name() const
   return _internal_full_name();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void ExtensionRangeOptions_Declaration::set_full_name(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void ExtensionRangeOptions_Declaration::set_full_name(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000001u;
   _impl_.full_name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -14094,8 +14033,8 @@ inline const std::string& ExtensionRangeOptions_Declaration::type() const
   return _internal_type();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void ExtensionRangeOptions_Declaration::set_type(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void ExtensionRangeOptions_Declaration::set_type(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000002u;
   _impl_.type_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -14450,8 +14389,8 @@ inline const std::string& FieldDescriptorProto::name() const
   return _internal_name();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void FieldDescriptorProto::set_name(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void FieldDescriptorProto::set_name(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000001u;
   _impl_.name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -14605,8 +14544,8 @@ inline const std::string& FieldDescriptorProto::type_name() const
   return _internal_type_name();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void FieldDescriptorProto::set_type_name(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void FieldDescriptorProto::set_type_name(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000004u;
   _impl_.type_name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -14674,8 +14613,8 @@ inline const std::string& FieldDescriptorProto::extendee() const
   return _internal_extendee();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void FieldDescriptorProto::set_extendee(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void FieldDescriptorProto::set_extendee(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000002u;
   _impl_.extendee_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -14743,8 +14682,8 @@ inline const std::string& FieldDescriptorProto::default_value() const
   return _internal_default_value();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void FieldDescriptorProto::set_default_value(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void FieldDescriptorProto::set_default_value(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000008u;
   _impl_.default_value_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -14840,8 +14779,8 @@ inline const std::string& FieldDescriptorProto::json_name() const
   return _internal_json_name();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void FieldDescriptorProto::set_json_name(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void FieldDescriptorProto::set_json_name(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000010u;
   _impl_.json_name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -15037,8 +14976,8 @@ inline const std::string& OneofDescriptorProto::name() const
   return _internal_name();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void OneofDescriptorProto::set_name(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void OneofDescriptorProto::set_name(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000001u;
   _impl_.name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -15266,8 +15205,8 @@ inline const std::string& EnumDescriptorProto::name() const
   return _internal_name();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void EnumDescriptorProto::set_name(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void EnumDescriptorProto::set_name(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000001u;
   _impl_.name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -15597,8 +15536,8 @@ inline const std::string& EnumValueDescriptorProto::name() const
   return _internal_name();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void EnumValueDescriptorProto::set_name(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void EnumValueDescriptorProto::set_name(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000001u;
   _impl_.name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -15794,8 +15733,8 @@ inline const std::string& ServiceDescriptorProto::name() const
   return _internal_name();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void ServiceDescriptorProto::set_name(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void ServiceDescriptorProto::set_name(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000001u;
   _impl_.name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -16012,8 +15951,8 @@ inline const std::string& MethodDescriptorProto::name() const
   return _internal_name();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void MethodDescriptorProto::set_name(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void MethodDescriptorProto::set_name(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000001u;
   _impl_.name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -16081,8 +16020,8 @@ inline const std::string& MethodDescriptorProto::input_type() const
   return _internal_input_type();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void MethodDescriptorProto::set_input_type(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void MethodDescriptorProto::set_input_type(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000002u;
   _impl_.input_type_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -16150,8 +16089,8 @@ inline const std::string& MethodDescriptorProto::output_type() const
   return _internal_output_type();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void MethodDescriptorProto::set_output_type(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void MethodDescriptorProto::set_output_type(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000004u;
   _impl_.output_type_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -16375,8 +16314,8 @@ inline const std::string& FileOptions::java_package() const
   return _internal_java_package();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void FileOptions::set_java_package(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void FileOptions::set_java_package(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000001u;
   _impl_.java_package_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -16444,8 +16383,8 @@ inline const std::string& FileOptions::java_outer_classname() const
   return _internal_java_outer_classname();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void FileOptions::set_java_outer_classname(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void FileOptions::set_java_outer_classname(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000002u;
   _impl_.java_outer_classname_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -16626,8 +16565,8 @@ inline const std::string& FileOptions::go_package() const
   return _internal_go_package();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void FileOptions::set_go_package(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void FileOptions::set_go_package(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000004u;
   _impl_.go_package_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -16835,8 +16774,8 @@ inline const std::string& FileOptions::objc_class_prefix() const
   return _internal_objc_class_prefix();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void FileOptions::set_objc_class_prefix(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void FileOptions::set_objc_class_prefix(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000008u;
   _impl_.objc_class_prefix_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -16904,8 +16843,8 @@ inline const std::string& FileOptions::csharp_namespace() const
   return _internal_csharp_namespace();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void FileOptions::set_csharp_namespace(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void FileOptions::set_csharp_namespace(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000010u;
   _impl_.csharp_namespace_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -16973,8 +16912,8 @@ inline const std::string& FileOptions::swift_prefix() const
   return _internal_swift_prefix();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void FileOptions::set_swift_prefix(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void FileOptions::set_swift_prefix(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000020u;
   _impl_.swift_prefix_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -17042,8 +16981,8 @@ inline const std::string& FileOptions::php_class_prefix() const
   return _internal_php_class_prefix();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void FileOptions::set_php_class_prefix(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void FileOptions::set_php_class_prefix(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000040u;
   _impl_.php_class_prefix_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -17111,8 +17050,8 @@ inline const std::string& FileOptions::php_namespace() const
   return _internal_php_namespace();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void FileOptions::set_php_namespace(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void FileOptions::set_php_namespace(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000080u;
   _impl_.php_namespace_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -17180,8 +17119,8 @@ inline const std::string& FileOptions::php_metadata_namespace() const
   return _internal_php_metadata_namespace();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void FileOptions::set_php_metadata_namespace(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void FileOptions::set_php_metadata_namespace(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000100u;
   _impl_.php_metadata_namespace_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -17249,8 +17188,8 @@ inline const std::string& FileOptions::ruby_package() const
   return _internal_ruby_package();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void FileOptions::set_ruby_package(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void FileOptions::set_ruby_package(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000200u;
   _impl_.ruby_package_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -17785,8 +17724,8 @@ inline const std::string& FieldOptions_EditionDefault::value() const
   return _internal_value();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void FieldOptions_EditionDefault::set_value(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void FieldOptions_EditionDefault::set_value(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000001u;
   _impl_.value_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -17916,8 +17855,8 @@ inline const std::string& FieldOptions_FeatureSupport::deprecation_warning() con
   return _internal_deprecation_warning();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void FieldOptions_FeatureSupport::set_deprecation_warning(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void FieldOptions_FeatureSupport::set_deprecation_warning(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000001u;
   _impl_.deprecation_warning_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -19680,8 +19619,8 @@ inline const std::string& UninterpretedOption_NamePart::name_part() const
   return _internal_name_part();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void UninterpretedOption_NamePart::set_name_part(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void UninterpretedOption_NamePart::set_name_part(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000001u;
   _impl_.name_part_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -19830,8 +19769,8 @@ inline const std::string& UninterpretedOption::identifier_value() const
   return _internal_identifier_value();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void UninterpretedOption::set_identifier_value(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void UninterpretedOption::set_identifier_value(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000001u;
   _impl_.identifier_value_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -19983,8 +19922,8 @@ inline const std::string& UninterpretedOption::string_value() const
   return _internal_string_value();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void UninterpretedOption::set_string_value(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void UninterpretedOption::set_string_value(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000002u;
   _impl_.string_value_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -20052,8 +19991,8 @@ inline const std::string& UninterpretedOption::aggregate_value() const
   return _internal_aggregate_value();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void UninterpretedOption::set_aggregate_value(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void UninterpretedOption::set_aggregate_value(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000004u;
   _impl_.aggregate_value_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -20729,8 +20668,8 @@ inline const std::string& SourceCodeInfo_Location::leading_comments() const
   return _internal_leading_comments();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void SourceCodeInfo_Location::set_leading_comments(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void SourceCodeInfo_Location::set_leading_comments(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000001u;
   _impl_.leading_comments_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -20798,8 +20737,8 @@ inline const std::string& SourceCodeInfo_Location::trailing_comments() const
   return _internal_trailing_comments();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void SourceCodeInfo_Location::set_trailing_comments(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void SourceCodeInfo_Location::set_trailing_comments(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000002u;
   _impl_.trailing_comments_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -21033,8 +20972,8 @@ inline const std::string& GeneratedCodeInfo_Annotation::source_file() const
   return _internal_source_file();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void GeneratedCodeInfo_Annotation::set_source_file(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void GeneratedCodeInfo_Annotation::set_source_file(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000001u;
   _impl_.source_file_.Set(static_cast<Arg_&&>(arg), args..., GetArena());

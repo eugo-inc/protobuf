@@ -646,13 +646,12 @@ class PROTOBUF_EXPORT StringValue final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_value(Arg_&& arg, Args_... args);
   std::string* mutable_value();
-  PROTOBUF_NODISCARD std::string* release_value();
+  [[nodiscard]] std::string* release_value();
   void set_allocated_value(std::string* value);
 
   private:
   const std::string& _internal_value() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_value(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_value(const std::string& value);
   std::string* _internal_mutable_value();
 
   public:
@@ -1627,13 +1626,12 @@ class PROTOBUF_EXPORT BytesValue final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_value(Arg_&& arg, Args_... args);
   std::string* mutable_value();
-  PROTOBUF_NODISCARD std::string* release_value();
+  [[nodiscard]] std::string* release_value();
   void set_allocated_value(std::string* value);
 
   private:
   const std::string& _internal_value() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_value(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_value(const std::string& value);
   std::string* _internal_mutable_value();
 
   public:
@@ -2090,8 +2088,8 @@ inline const std::string& StringValue::value() const
   return _internal_value();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void StringValue::set_value(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void StringValue::set_value(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000001u;
   _impl_.value_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -2159,8 +2157,8 @@ inline const std::string& BytesValue::value() const
   return _internal_value();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void BytesValue::set_value(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void BytesValue::set_value(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000001u;
   _impl_.value_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());

@@ -855,7 +855,7 @@ void FileGenerator::GenerateStaticInitializer(io::Printer* p) {
           }}},
         R"cc(
           PROTOBUF_ATTRIBUTE_INIT_PRIORITY$priority$ static ::std::false_type
-              _static_init$priority$_ PROTOBUF_UNUSED =
+              _static_init$priority$_ [[maybe_unused]] =
                   ($expr$, ::std::false_type{});
         )cc");
     // Reset the vector because we might be generating many files.
@@ -1686,6 +1686,7 @@ void FileGenerator::GenerateLibraryIncludes(io::Printer* p) {
   }
   if (HasMapFields(file_)) {
     IncludeFileAndExport("third_party/protobuf/map.h", p);
+    IncludeFileAndExport("third_party/protobuf/map_type_handler.h", p);
     if (HasDescriptorMethods(file_, options_)) {
       IncludeFile("third_party/protobuf/map_entry.h", p);
       IncludeFile("third_party/protobuf/map_field_inl.h", p);

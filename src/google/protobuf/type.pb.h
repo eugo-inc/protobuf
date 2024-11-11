@@ -387,13 +387,12 @@ class PROTOBUF_EXPORT Option final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_name(Arg_&& arg, Args_... args);
   std::string* mutable_name();
-  PROTOBUF_NODISCARD std::string* release_name();
+  [[nodiscard]] std::string* release_name();
   void set_allocated_name(std::string* value);
 
   private:
   const std::string& _internal_name() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_name(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_name(const std::string& value);
   std::string* _internal_mutable_name();
 
   public:
@@ -401,7 +400,7 @@ class PROTOBUF_EXPORT Option final
   bool has_value() const;
   void clear_value() ;
   const ::google::protobuf::Any& value() const;
-  PROTOBUF_NODISCARD ::google::protobuf::Any* release_value();
+  [[nodiscard]] ::google::protobuf::Any* release_value();
   ::google::protobuf::Any* mutable_value();
   void set_allocated_value(::google::protobuf::Any* value);
   void unsafe_arena_set_allocated_value(::google::protobuf::Any* value);
@@ -687,13 +686,12 @@ class PROTOBUF_EXPORT Field final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_name(Arg_&& arg, Args_... args);
   std::string* mutable_name();
-  PROTOBUF_NODISCARD std::string* release_name();
+  [[nodiscard]] std::string* release_name();
   void set_allocated_name(std::string* value);
 
   private:
   const std::string& _internal_name() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_name(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_name(const std::string& value);
   std::string* _internal_mutable_name();
 
   public:
@@ -703,13 +701,12 @@ class PROTOBUF_EXPORT Field final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_type_url(Arg_&& arg, Args_... args);
   std::string* mutable_type_url();
-  PROTOBUF_NODISCARD std::string* release_type_url();
+  [[nodiscard]] std::string* release_type_url();
   void set_allocated_type_url(std::string* value);
 
   private:
   const std::string& _internal_type_url() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_type_url(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_type_url(const std::string& value);
   std::string* _internal_mutable_type_url();
 
   public:
@@ -719,13 +716,12 @@ class PROTOBUF_EXPORT Field final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_json_name(Arg_&& arg, Args_... args);
   std::string* mutable_json_name();
-  PROTOBUF_NODISCARD std::string* release_json_name();
+  [[nodiscard]] std::string* release_json_name();
   void set_allocated_json_name(std::string* value);
 
   private:
   const std::string& _internal_json_name() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_json_name(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_json_name(const std::string& value);
   std::string* _internal_mutable_json_name();
 
   public:
@@ -735,13 +731,12 @@ class PROTOBUF_EXPORT Field final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_default_value(Arg_&& arg, Args_... args);
   std::string* mutable_default_value();
-  PROTOBUF_NODISCARD std::string* release_default_value();
+  [[nodiscard]] std::string* release_default_value();
   void set_allocated_default_value(std::string* value);
 
   private:
   const std::string& _internal_default_value() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_default_value(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_default_value(const std::string& value);
   std::string* _internal_mutable_default_value();
 
   public:
@@ -1014,13 +1009,12 @@ class PROTOBUF_EXPORT EnumValue final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_name(Arg_&& arg, Args_... args);
   std::string* mutable_name();
-  PROTOBUF_NODISCARD std::string* release_name();
+  [[nodiscard]] std::string* release_name();
   void set_allocated_name(std::string* value);
 
   private:
   const std::string& _internal_name() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_name(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_name(const std::string& value);
   std::string* _internal_mutable_name();
 
   public:
@@ -1289,13 +1283,12 @@ class PROTOBUF_EXPORT Type final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_name(Arg_&& arg, Args_... args);
   std::string* mutable_name();
-  PROTOBUF_NODISCARD std::string* release_name();
+  [[nodiscard]] std::string* release_name();
   void set_allocated_name(std::string* value);
 
   private:
   const std::string& _internal_name() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_name(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_name(const std::string& value);
   std::string* _internal_mutable_name();
 
   public:
@@ -1305,13 +1298,12 @@ class PROTOBUF_EXPORT Type final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_edition(Arg_&& arg, Args_... args);
   std::string* mutable_edition();
-  PROTOBUF_NODISCARD std::string* release_edition();
+  [[nodiscard]] std::string* release_edition();
   void set_allocated_edition(std::string* value);
 
   private:
   const std::string& _internal_edition() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_edition(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_edition(const std::string& value);
   std::string* _internal_mutable_edition();
 
   public:
@@ -1319,7 +1311,7 @@ class PROTOBUF_EXPORT Type final
   bool has_source_context() const;
   void clear_source_context() ;
   const ::google::protobuf::SourceContext& source_context() const;
-  PROTOBUF_NODISCARD ::google::protobuf::SourceContext* release_source_context();
+  [[nodiscard]] ::google::protobuf::SourceContext* release_source_context();
   ::google::protobuf::SourceContext* mutable_source_context();
   void set_allocated_source_context(::google::protobuf::SourceContext* value);
   void unsafe_arena_set_allocated_source_context(::google::protobuf::SourceContext* value);
@@ -1576,13 +1568,12 @@ class PROTOBUF_EXPORT Enum final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_name(Arg_&& arg, Args_... args);
   std::string* mutable_name();
-  PROTOBUF_NODISCARD std::string* release_name();
+  [[nodiscard]] std::string* release_name();
   void set_allocated_name(std::string* value);
 
   private:
   const std::string& _internal_name() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_name(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_name(const std::string& value);
   std::string* _internal_mutable_name();
 
   public:
@@ -1592,13 +1583,12 @@ class PROTOBUF_EXPORT Enum final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_edition(Arg_&& arg, Args_... args);
   std::string* mutable_edition();
-  PROTOBUF_NODISCARD std::string* release_edition();
+  [[nodiscard]] std::string* release_edition();
   void set_allocated_edition(std::string* value);
 
   private:
   const std::string& _internal_edition() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_edition(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_edition(const std::string& value);
   std::string* _internal_mutable_edition();
 
   public:
@@ -1606,7 +1596,7 @@ class PROTOBUF_EXPORT Enum final
   bool has_source_context() const;
   void clear_source_context() ;
   const ::google::protobuf::SourceContext& source_context() const;
-  PROTOBUF_NODISCARD ::google::protobuf::SourceContext* release_source_context();
+  [[nodiscard]] ::google::protobuf::SourceContext* release_source_context();
   ::google::protobuf::SourceContext* mutable_source_context();
   void set_allocated_source_context(::google::protobuf::SourceContext* value);
   void unsafe_arena_set_allocated_source_context(::google::protobuf::SourceContext* value);
@@ -1694,8 +1684,8 @@ inline const std::string& Type::name() const
   return _internal_name();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void Type::set_name(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void Type::set_name(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000001u;
   _impl_.name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -2036,8 +2026,8 @@ inline const std::string& Type::edition() const
   return _internal_edition();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void Type::set_edition(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void Type::set_edition(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000002u;
   _impl_.edition_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -2177,8 +2167,8 @@ inline const std::string& Field::name() const
   return _internal_name();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void Field::set_name(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void Field::set_name(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000001u;
   _impl_.name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -2242,8 +2232,8 @@ inline const std::string& Field::type_url() const
   return _internal_type_url();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void Field::set_type_url(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void Field::set_type_url(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000002u;
   _impl_.type_url_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -2404,8 +2394,8 @@ inline const std::string& Field::json_name() const
   return _internal_json_name();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void Field::set_json_name(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void Field::set_json_name(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000004u;
   _impl_.json_name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -2469,8 +2459,8 @@ inline const std::string& Field::default_value() const
   return _internal_default_value();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void Field::set_default_value(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void Field::set_default_value(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000008u;
   _impl_.default_value_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -2538,8 +2528,8 @@ inline const std::string& Enum::name() const
   return _internal_name();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void Enum::set_name(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void Enum::set_name(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000001u;
   _impl_.name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -2816,8 +2806,8 @@ inline const std::string& Enum::edition() const
   return _internal_edition();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void Enum::set_edition(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void Enum::set_edition(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000002u;
   _impl_.edition_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -2885,8 +2875,8 @@ inline const std::string& EnumValue::name() const
   return _internal_name();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void EnumValue::set_name(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void EnumValue::set_name(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000001u;
   _impl_.name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -3027,8 +3017,8 @@ inline const std::string& Option::name() const
   return _internal_name();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void Option::set_name(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void Option::set_name(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000001u;
   _impl_.name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());

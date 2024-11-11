@@ -173,10 +173,14 @@ Error, UINTPTR_MAX is undefined
 #define UPB_UNREACHABLE() do { assert(0); } while(0)
 #endif
 
-/* UPB_SETJMP() / UPB_LONGJMP(): avoid setting/restoring signal mask. */
-#ifdef __APPLE__
-#define UPB_SETJMP(buf) _setjmp(buf)
-#define UPB_LONGJMP(buf, val) _longjmp(buf, val)
+/* UPB_SETJMP() / UPB_LONGJMP() */
+// Android uses a custom libc that does not implement all of posix, but it has
+// had sigsetjmp/siglongjmp forever on arm and since API 12 on x86. Apple has
+// sigsetjmp, but does not define the posix feature test macro.
+#if defined(__APPLE__) || defined(_POSIX_C_SOURCE) || defined(__ANDROID__)
+// avoid setting/restoring signal mask, which involves costly syscalls
+#define UPB_SETJMP(buf) sigsetjmp(buf, 0)
+#define UPB_LONGJMP(buf, val) siglongjmp(buf, val)
 #elif defined(WASM_WAMR)
 #define UPB_SETJMP(buf) 0
 #define UPB_LONGJMP(buf, val) abort()
@@ -4163,6 +4167,29 @@ UPB_API_INLINE uint64_t upb_Message_GetExtensionUInt64(
   return ret;
 }
 
+UPB_API_INLINE upb_StringView upb_Message_GetExtensionString(
+    const struct upb_Message* msg, const upb_MiniTableExtension* e,
+    upb_StringView default_val) {
+  UPB_ASSUME(upb_MiniTableExtension_CType(e) == kUpb_CType_String ||
+             upb_MiniTableExtension_CType(e) == kUpb_CType_Bytes);
+  UPB_ASSUME(UPB_PRIVATE(_upb_MiniTableExtension_GetRep)(e) ==
+             kUpb_FieldRep_StringView);
+  upb_StringView ret;
+  _upb_Message_GetExtensionField(msg, e, &default_val, &ret);
+  return ret;
+}
+
+UPB_API_INLINE struct upb_Message* upb_Message_GetExtensionMessage(
+    const struct upb_Message* msg, const upb_MiniTableExtension* e,
+    struct upb_Message* default_val) {
+  UPB_ASSUME(upb_MiniTableExtension_CType(e) == kUpb_CType_Message);
+  UPB_ASSUME(UPB_PRIVATE(_upb_MiniTableExtension_GetRep)(e) ==
+             UPB_SIZE(kUpb_FieldRep_4Byte, kUpb_FieldRep_8Byte));
+  struct upb_Message* ret;
+  _upb_Message_GetExtensionField(msg, e, &default_val, &ret);
+  return ret;
+}
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
@@ -4291,6 +4318,7 @@ UPB_API_INLINE bool upb_Map_IsFrozen(const upb_Map* map);
 #define UPB_MESSAGE_MESSAGE_H_
 
 #include <stddef.h>
+#include <stdint.h>
 
 
 // Must be last.
@@ -4303,6 +4331,21 @@ extern "C" {
 
 // Creates a new message with the given mini_table on the given arena.
 UPB_API upb_Message* upb_Message_New(const upb_MiniTable* m, upb_Arena* arena);
+
+//
+// Unknown data may be stored non-contiguously. Each segment stores a block of
+// unknown fields. To iterate over segments:
+//
+//   uintptr_t iter = kUpb_Message_UnknownBegin;
+//   upb_StringView data;
+//   while (upb_Message_NextUnknown(msg, &data, &iter)) {
+//     // Use data
+//   }
+
+#define kUpb_Message_UnknownBegin 0
+
+bool upb_Message_NextUnknown(const upb_Message* msg, upb_StringView* data,
+                             uintptr_t* iter);
 
 // Returns a reference to the message's unknown data.
 const char* upb_Message_GetUnknown(const upb_Message* msg, size_t* len);
@@ -4518,7 +4561,6 @@ UPB_API_INLINE void upb_Message_SetBaseFieldUInt64(struct upb_Message* msg,
                                                    uint64_t value);
 
 // Extension Getters ///////////////////////////////////////////////////////////
-// TODO: b/374976899 - Add support for non scalars
 UPB_API_INLINE bool upb_Message_GetExtensionBool(
     const upb_Message* msg, const upb_MiniTableExtension* f, bool default_val);
 
@@ -4544,6 +4586,14 @@ UPB_API_INLINE uint32_t upb_Message_GetExtensionUInt32(
 UPB_API_INLINE uint64_t upb_Message_GetExtensionUInt64(
     const upb_Message* msg, const upb_MiniTableExtension* f,
     uint64_t default_val);
+
+UPB_API_INLINE upb_StringView upb_Message_GetExtensionString(
+    const upb_Message* msg, const upb_MiniTableExtension* f,
+    upb_StringView default_val);
+
+UPB_API_INLINE upb_Message* upb_Message_GetExtensionMessage(
+    const upb_Message* msg, const upb_MiniTableExtension* f,
+    struct upb_Message* default_val);
 
 // Extension Setters ///////////////////////////////////////////////////////////
 

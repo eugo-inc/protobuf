@@ -235,13 +235,12 @@ class PROTOBUF_EXPORT Mixin final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_name(Arg_&& arg, Args_... args);
   std::string* mutable_name();
-  PROTOBUF_NODISCARD std::string* release_name();
+  [[nodiscard]] std::string* release_name();
   void set_allocated_name(std::string* value);
 
   private:
   const std::string& _internal_name() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_name(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_name(const std::string& value);
   std::string* _internal_mutable_name();
 
   public:
@@ -251,13 +250,12 @@ class PROTOBUF_EXPORT Mixin final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_root(Arg_&& arg, Args_... args);
   std::string* mutable_root();
-  PROTOBUF_NODISCARD std::string* release_root();
+  [[nodiscard]] std::string* release_root();
   void set_allocated_root(std::string* value);
 
   private:
   const std::string& _internal_root() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_root(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_root(const std::string& value);
   std::string* _internal_mutable_root();
 
   public:
@@ -476,13 +474,12 @@ class PROTOBUF_EXPORT Method final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_name(Arg_&& arg, Args_... args);
   std::string* mutable_name();
-  PROTOBUF_NODISCARD std::string* release_name();
+  [[nodiscard]] std::string* release_name();
   void set_allocated_name(std::string* value);
 
   private:
   const std::string& _internal_name() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_name(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_name(const std::string& value);
   std::string* _internal_mutable_name();
 
   public:
@@ -492,13 +489,12 @@ class PROTOBUF_EXPORT Method final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_request_type_url(Arg_&& arg, Args_... args);
   std::string* mutable_request_type_url();
-  PROTOBUF_NODISCARD std::string* release_request_type_url();
+  [[nodiscard]] std::string* release_request_type_url();
   void set_allocated_request_type_url(std::string* value);
 
   private:
   const std::string& _internal_request_type_url() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_request_type_url(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_request_type_url(const std::string& value);
   std::string* _internal_mutable_request_type_url();
 
   public:
@@ -508,13 +504,12 @@ class PROTOBUF_EXPORT Method final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_response_type_url(Arg_&& arg, Args_... args);
   std::string* mutable_response_type_url();
-  PROTOBUF_NODISCARD std::string* release_response_type_url();
+  [[nodiscard]] std::string* release_response_type_url();
   void set_allocated_response_type_url(std::string* value);
 
   private:
   const std::string& _internal_response_type_url() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_response_type_url(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_response_type_url(const std::string& value);
   std::string* _internal_mutable_response_type_url();
 
   public:
@@ -802,13 +797,12 @@ class PROTOBUF_EXPORT Api final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_name(Arg_&& arg, Args_... args);
   std::string* mutable_name();
-  PROTOBUF_NODISCARD std::string* release_name();
+  [[nodiscard]] std::string* release_name();
   void set_allocated_name(std::string* value);
 
   private:
   const std::string& _internal_name() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_name(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_name(const std::string& value);
   std::string* _internal_mutable_name();
 
   public:
@@ -818,13 +812,12 @@ class PROTOBUF_EXPORT Api final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_version(Arg_&& arg, Args_... args);
   std::string* mutable_version();
-  PROTOBUF_NODISCARD std::string* release_version();
+  [[nodiscard]] std::string* release_version();
   void set_allocated_version(std::string* value);
 
   private:
   const std::string& _internal_version() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_version(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_version(const std::string& value);
   std::string* _internal_mutable_version();
 
   public:
@@ -832,7 +825,7 @@ class PROTOBUF_EXPORT Api final
   bool has_source_context() const;
   void clear_source_context() ;
   const ::google::protobuf::SourceContext& source_context() const;
-  PROTOBUF_NODISCARD ::google::protobuf::SourceContext* release_source_context();
+  [[nodiscard]] ::google::protobuf::SourceContext* release_source_context();
   ::google::protobuf::SourceContext* mutable_source_context();
   void set_allocated_source_context(::google::protobuf::SourceContext* value);
   void unsafe_arena_set_allocated_source_context(::google::protobuf::SourceContext* value);
@@ -921,8 +914,8 @@ inline const std::string& Api::name() const
   return _internal_name();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void Api::set_name(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void Api::set_name(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000001u;
   _impl_.name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -1080,8 +1073,8 @@ inline const std::string& Api::version() const
   return _internal_version();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void Api::set_version(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void Api::set_version(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000002u;
   _impl_.version_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -1313,8 +1306,8 @@ inline const std::string& Method::name() const
   return _internal_name();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void Method::set_name(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void Method::set_name(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000001u;
   _impl_.name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -1378,8 +1371,8 @@ inline const std::string& Method::request_type_url() const
   return _internal_request_type_url();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void Method::set_request_type_url(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void Method::set_request_type_url(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000002u;
   _impl_.request_type_url_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -1467,8 +1460,8 @@ inline const std::string& Method::response_type_url() const
   return _internal_response_type_url();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void Method::set_response_type_url(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void Method::set_response_type_url(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000004u;
   _impl_.response_type_url_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -1629,8 +1622,8 @@ inline const std::string& Mixin::name() const
   return _internal_name();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void Mixin::set_name(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void Mixin::set_name(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000001u;
   _impl_.name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
@@ -1694,8 +1687,8 @@ inline const std::string& Mixin::root() const
   return _internal_root();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void Mixin::set_root(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void Mixin::set_root(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000002u;
   _impl_.root_.Set(static_cast<Arg_&&>(arg), args..., GetArena());

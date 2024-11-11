@@ -443,7 +443,7 @@ DoubleValue::DoubleValue(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
 }
-inline PROTOBUF_NDEBUG_INLINE DoubleValue::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE DoubleValue::Impl_::Impl_(
     ::google::protobuf::internal::InternalVisibility visibility,
     ::google::protobuf::Arena* arena)
       : _cached_size_{0} {}
@@ -574,7 +574,7 @@ PROTOBUF_NOINLINE void DoubleValue::Clear() {
             }
           }
 
-          if (PROTOBUF_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+          if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
             target =
                 ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
                     this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
@@ -676,7 +676,7 @@ FloatValue::FloatValue(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
 }
-inline PROTOBUF_NDEBUG_INLINE FloatValue::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE FloatValue::Impl_::Impl_(
     ::google::protobuf::internal::InternalVisibility visibility,
     ::google::protobuf::Arena* arena)
       : _cached_size_{0} {}
@@ -807,7 +807,7 @@ PROTOBUF_NOINLINE void FloatValue::Clear() {
             }
           }
 
-          if (PROTOBUF_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+          if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
             target =
                 ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
                     this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
@@ -909,7 +909,7 @@ Int64Value::Int64Value(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
 }
-inline PROTOBUF_NDEBUG_INLINE Int64Value::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE Int64Value::Impl_::Impl_(
     ::google::protobuf::internal::InternalVisibility visibility,
     ::google::protobuf::Arena* arena)
       : _cached_size_{0} {}
@@ -1040,7 +1040,7 @@ PROTOBUF_NOINLINE void Int64Value::Clear() {
             }
           }
 
-          if (PROTOBUF_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+          if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
             target =
                 ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
                     this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
@@ -1143,7 +1143,7 @@ UInt64Value::UInt64Value(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
 }
-inline PROTOBUF_NDEBUG_INLINE UInt64Value::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE UInt64Value::Impl_::Impl_(
     ::google::protobuf::internal::InternalVisibility visibility,
     ::google::protobuf::Arena* arena)
       : _cached_size_{0} {}
@@ -1274,7 +1274,7 @@ PROTOBUF_NOINLINE void UInt64Value::Clear() {
             }
           }
 
-          if (PROTOBUF_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+          if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
             target =
                 ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
                     this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
@@ -1377,7 +1377,7 @@ Int32Value::Int32Value(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
 }
-inline PROTOBUF_NDEBUG_INLINE Int32Value::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE Int32Value::Impl_::Impl_(
     ::google::protobuf::internal::InternalVisibility visibility,
     ::google::protobuf::Arena* arena)
       : _cached_size_{0} {}
@@ -1508,7 +1508,7 @@ PROTOBUF_NOINLINE void Int32Value::Clear() {
             }
           }
 
-          if (PROTOBUF_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+          if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
             target =
                 ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
                     this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
@@ -1611,7 +1611,7 @@ UInt32Value::UInt32Value(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
 }
-inline PROTOBUF_NDEBUG_INLINE UInt32Value::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE UInt32Value::Impl_::Impl_(
     ::google::protobuf::internal::InternalVisibility visibility,
     ::google::protobuf::Arena* arena)
       : _cached_size_{0} {}
@@ -1742,7 +1742,7 @@ PROTOBUF_NOINLINE void UInt32Value::Clear() {
             }
           }
 
-          if (PROTOBUF_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+          if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
             target =
                 ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
                     this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
@@ -1845,7 +1845,7 @@ BoolValue::BoolValue(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
 }
-inline PROTOBUF_NDEBUG_INLINE BoolValue::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE BoolValue::Impl_::Impl_(
     ::google::protobuf::internal::InternalVisibility visibility,
     ::google::protobuf::Arena* arena)
       : _cached_size_{0} {}
@@ -1976,7 +1976,7 @@ PROTOBUF_NOINLINE void BoolValue::Clear() {
             }
           }
 
-          if (PROTOBUF_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+          if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
             target =
                 ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
                     this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
@@ -2067,7 +2067,7 @@ StringValue::StringValue(::google::protobuf::Arena* arena)
   SharedCtor(arena);
   // @@protoc_insertion_point(arena_constructor:google.protobuf.StringValue)
 }
-inline PROTOBUF_NDEBUG_INLINE StringValue::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE StringValue::Impl_::Impl_(
     ::google::protobuf::internal::InternalVisibility visibility, ::google::protobuf::Arena* arena,
     const Impl_& from, const ::google::protobuf::StringValue& from_msg)
       : _has_bits_{from._has_bits_},
@@ -2090,7 +2090,7 @@ StringValue::StringValue(
 
   // @@protoc_insertion_point(copy_constructor:google.protobuf.StringValue)
 }
-inline PROTOBUF_NDEBUG_INLINE StringValue::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE StringValue::Impl_::Impl_(
     ::google::protobuf::internal::InternalVisibility visibility,
     ::google::protobuf::Arena* arena)
       : _cached_size_{0},
@@ -2229,7 +2229,7 @@ PROTOBUF_NOINLINE void StringValue::Clear() {
             }
           }
 
-          if (PROTOBUF_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+          if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
             target =
                 ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
                     this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
@@ -2327,7 +2327,7 @@ BytesValue::BytesValue(::google::protobuf::Arena* arena)
   SharedCtor(arena);
   // @@protoc_insertion_point(arena_constructor:google.protobuf.BytesValue)
 }
-inline PROTOBUF_NDEBUG_INLINE BytesValue::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE BytesValue::Impl_::Impl_(
     ::google::protobuf::internal::InternalVisibility visibility, ::google::protobuf::Arena* arena,
     const Impl_& from, const ::google::protobuf::BytesValue& from_msg)
       : _has_bits_{from._has_bits_},
@@ -2350,7 +2350,7 @@ BytesValue::BytesValue(
 
   // @@protoc_insertion_point(copy_constructor:google.protobuf.BytesValue)
 }
-inline PROTOBUF_NDEBUG_INLINE BytesValue::Impl_::Impl_(
+PROTOBUF_NDEBUG_INLINE BytesValue::Impl_::Impl_(
     ::google::protobuf::internal::InternalVisibility visibility,
     ::google::protobuf::Arena* arena)
       : _cached_size_{0},
@@ -2484,7 +2484,7 @@ PROTOBUF_NOINLINE void BytesValue::Clear() {
             }
           }
 
-          if (PROTOBUF_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+          if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
             target =
                 ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
                     this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
@@ -2572,7 +2572,7 @@ namespace protobuf {
 }  // namespace google
 // @@protoc_insertion_point(global_scope)
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::std::false_type
-    _static_init2_ PROTOBUF_UNUSED =
+    _static_init2_ [[maybe_unused]] =
         (::_pbi::AddDescriptors(&descriptor_table_google_2fprotobuf_2fwrappers_2eproto),
          ::std::false_type{});
 #include "google/protobuf/port_undef.inc"

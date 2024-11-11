@@ -224,13 +224,12 @@ class PROTOBUF_EXPORT SourceContext final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_file_name(Arg_&& arg, Args_... args);
   std::string* mutable_file_name();
-  PROTOBUF_NODISCARD std::string* release_file_name();
+  [[nodiscard]] std::string* release_file_name();
   void set_allocated_file_name(std::string* value);
 
   private:
   const std::string& _internal_file_name() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_file_name(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_file_name(const std::string& value);
   std::string* _internal_mutable_file_name();
 
   public:
@@ -296,8 +295,8 @@ inline const std::string& SourceContext::file_name() const
   return _internal_file_name();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void SourceContext::set_file_name(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void SourceContext::set_file_name(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_._has_bits_[0] |= 0x00000001u;
   _impl_.file_name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());

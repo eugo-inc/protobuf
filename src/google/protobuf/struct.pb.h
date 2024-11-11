@@ -29,6 +29,7 @@
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
 #include "google/protobuf/map.h"  // IWYU pragma: export
+#include "google/protobuf/map_type_handler.h"  // IWYU pragma: export
 #include "google/protobuf/map_entry.h"
 #include "google/protobuf/map_field_inl.h"
 #include "google/protobuf/generated_enum_reflection.h"
@@ -761,13 +762,12 @@ class PROTOBUF_EXPORT Value final
   template <typename Arg_ = const std::string&, typename... Args_>
   void set_string_value(Arg_&& arg, Args_... args);
   std::string* mutable_string_value();
-  PROTOBUF_NODISCARD std::string* release_string_value();
+  [[nodiscard]] std::string* release_string_value();
   void set_allocated_string_value(std::string* value);
 
   private:
   const std::string& _internal_string_value() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_string_value(
-      const std::string& value);
+  PROTOBUF_ALWAYS_INLINE void _internal_set_string_value(const std::string& value);
   std::string* _internal_mutable_string_value();
 
   public:
@@ -790,7 +790,7 @@ class PROTOBUF_EXPORT Value final
   public:
   void clear_struct_value() ;
   const ::google::protobuf::Struct& struct_value() const;
-  PROTOBUF_NODISCARD ::google::protobuf::Struct* release_struct_value();
+  [[nodiscard]] ::google::protobuf::Struct* release_struct_value();
   ::google::protobuf::Struct* mutable_struct_value();
   void set_allocated_struct_value(::google::protobuf::Struct* value);
   void unsafe_arena_set_allocated_struct_value(::google::protobuf::Struct* value);
@@ -809,7 +809,7 @@ class PROTOBUF_EXPORT Value final
   public:
   void clear_list_value() ;
   const ::google::protobuf::ListValue& list_value() const;
-  PROTOBUF_NODISCARD ::google::protobuf::ListValue* release_list_value();
+  [[nodiscard]] ::google::protobuf::ListValue* release_list_value();
   ::google::protobuf::ListValue* mutable_list_value();
   void set_allocated_list_value(::google::protobuf::ListValue* value);
   void unsafe_arena_set_allocated_list_value(::google::protobuf::ListValue* value);
@@ -1009,8 +1009,8 @@ inline const std::string& Value::string_value() const
   return _internal_string_value();
 }
 template <typename Arg_, typename... Args_>
-inline PROTOBUF_ALWAYS_INLINE void Value::set_string_value(Arg_&& arg,
-                                                     Args_... args) {
+PROTOBUF_ALWAYS_INLINE void Value::set_string_value(Arg_&& arg,
+                                              Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (kind_case() != kStringValue) {
     clear_kind();

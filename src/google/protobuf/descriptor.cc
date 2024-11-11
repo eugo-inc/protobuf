@@ -3959,16 +3959,15 @@ bool FieldDescriptor::has_optional_keyword() const {
 
 FieldDescriptor::CppStringType FieldDescriptor::cpp_string_type() const {
   ABSL_DCHECK(cpp_type() == FieldDescriptor::CPPTYPE_STRING);
+
+  if (internal::cpp::IsStringFieldWithPrivatizedAccessors(*this)) {
+    return CppStringType::kString;
+  }
+
   switch (features().GetExtension(pb::cpp).string_type()) {
     case pb::CppFeatures::VIEW:
       return CppStringType::kView;
     case pb::CppFeatures::CORD:
-      // In open-source, protobuf CORD is only supported for singular bytes
-      // fields.
-      if (type() != FieldDescriptor::TYPE_BYTES || is_repeated() ||
-          is_extension()) {
-        return CppStringType::kString;
-      }
       return CppStringType::kCord;
     case pb::CppFeatures::STRING:
       return CppStringType::kString;
@@ -4806,7 +4805,7 @@ DescriptorBuilder::DescriptorBuilder(
   // have to avoid registering these pre-main, because we need to ensure that
   // the linker --gc-sections step can strip out the full runtime if it is
   // unused.
-  PROTOBUF_UNUSED static std::true_type lazy_register =
+  [[maybe_unused]] static std::true_type lazy_register =
       (internal::ExtensionSet::RegisterMessageExtension(
            &FeatureSet::default_instance(), pb::cpp.number(),
            FieldDescriptor::TYPE_MESSAGE, false, false,
@@ -9868,6 +9867,21 @@ bool IsLazilyInitializedFile(absl::string_view filename) {
   }
   return filename == "net/proto2/proto/descriptor.proto" ||
          filename == "google/protobuf/descriptor.proto";
+}
+
+bool IsStringFieldWithPrivatizedAccessors(const FieldDescriptor& field) {
+  // In open-source, protobuf CORD is only supported for singular bytes
+  // fields.
+  if (field.cpp_type() == FieldDescriptor::CPPTYPE_STRING &&
+      InternalFeatureHelper::GetFeatures(field)
+              .GetExtension(pb::cpp)
+              .string_type() == pb::CppFeatures::CORD &&
+      (field.type() != FieldDescriptor::TYPE_BYTES || field.is_repeated() ||
+       field.is_extension())) {
+    return true;
+  }
+
+  return false;
 }
 
 }  // namespace cpp
