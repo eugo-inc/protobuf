@@ -484,11 +484,12 @@ bool HasMapFields(const FileDescriptor* file);
 // Does this file have any enum type definitions?
 bool HasEnumDefinitions(const FileDescriptor* file);
 
-// Returns true if a message in the file can have v2 table.
-bool HasV2Table(const FileDescriptor* file);
+// Returns true if any message in the file can have v2 table.
+bool HasV2Table(const FileDescriptor* file, const Options& options);
 
 // Returns true if a message (descriptor) can have v2 table.
-bool HasV2Table(const Descriptor* descriptor);
+bool IsV2EnabledForMessage(const Descriptor* descriptor,
+                           const Options& options);
 
 // Does this file have generated parsing, serialization, and other
 // standard methods for which reflection-based fallback implementations exist?
@@ -1181,6 +1182,24 @@ bool HasOnDeserializeTracker(const Descriptor* descriptor,
 // `&ClassName::PostLoopHandler` which should be a static function of the right
 // signature.
 bool NeedsPostLoopHandler(const Descriptor* descriptor, const Options& options);
+
+// Emit the repeated field getter for the custom options.
+// If safe_boundary_check is specified, it calls the internal checked getter.
+inline auto GetEmitRepeatedFieldGetterSub(const Options& options,
+                                          io::Printer* p) {
+  return io::Printer::Sub{
+      "getter",
+      [&options, p] {
+        if (options.safe_boundary_check) {
+          p->Emit(R"cc(
+            $pbi$::CheckedGetOrDefault(_internal_$name_internal$(), index)
+          )cc");
+        } else {
+          p->Emit(R"cc(_internal_$name_internal$().Get(index))cc");
+        }
+      }}
+      .WithSuffix("");
+}
 
 // Priority used for static initializers.
 enum InitPriority {

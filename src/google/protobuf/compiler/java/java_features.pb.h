@@ -51,8 +51,10 @@ template <typename T>
 struct PROTOC_EXPORT TableStruct_google_2fprotobuf_2fcompiler_2fjava_2fjava_5ffeatures_2eproto {
   static const ::uint32_t offsets[];
 };
+extern "C" {
 PROTOC_EXPORT extern const ::google::protobuf::internal::DescriptorTable
     descriptor_table_google_2fprotobuf_2fcompiler_2fjava_2fjava_5ffeatures_2eproto;
+}  // extern "C"
 namespace pb {
 enum JavaFeatures_Utf8Validation : int;
 PROTOC_EXPORT bool JavaFeatures_Utf8Validation_IsValid(int value);
@@ -163,10 +165,7 @@ class PROTOC_EXPORT JavaFeatures final
     return default_instance().GetMetadata().reflection;
   }
   static const JavaFeatures& default_instance() {
-    return *internal_default_instance();
-  }
-  static inline const JavaFeatures* internal_default_instance() {
-    return reinterpret_cast<const JavaFeatures*>(
+    return *reinterpret_cast<const JavaFeatures*>(
         &_JavaFeatures_default_instance_);
   }
   static constexpr int kIndexInFileMessages = 0;

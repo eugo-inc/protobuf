@@ -49,8 +49,10 @@ template <typename T>
 struct PROTOBUF_EXPORT TableStruct_google_2fprotobuf_2fany_2eproto {
   static const ::uint32_t offsets[];
 };
+extern "C" {
 PROTOBUF_EXPORT extern const ::google::protobuf::internal::DescriptorTable
     descriptor_table_google_2fprotobuf_2fany_2eproto;
+}  // extern "C"
 namespace google {
 namespace protobuf {
 class Any;
@@ -122,10 +124,7 @@ class PROTOBUF_EXPORT Any final
     return default_instance().GetMetadata().reflection;
   }
   static const Any& default_instance() {
-    return *internal_default_instance();
-  }
-  static inline const Any* internal_default_instance() {
-    return reinterpret_cast<const Any*>(
+    return *reinterpret_cast<const Any*>(
         &_Any_default_instance_);
   }
   static constexpr int kIndexInFileMessages = 0;

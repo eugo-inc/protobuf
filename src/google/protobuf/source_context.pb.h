@@ -49,8 +49,10 @@ template <typename T>
 struct PROTOBUF_EXPORT TableStruct_google_2fprotobuf_2fsource_5fcontext_2eproto {
   static const ::uint32_t offsets[];
 };
+extern "C" {
 PROTOBUF_EXPORT extern const ::google::protobuf::internal::DescriptorTable
     descriptor_table_google_2fprotobuf_2fsource_5fcontext_2eproto;
+}  // extern "C"
 namespace google {
 namespace protobuf {
 class SourceContext;
@@ -122,10 +124,7 @@ class PROTOBUF_EXPORT SourceContext final
     return default_instance().GetMetadata().reflection;
   }
   static const SourceContext& default_instance() {
-    return *internal_default_instance();
-  }
-  static inline const SourceContext* internal_default_instance() {
-    return reinterpret_cast<const SourceContext*>(
+    return *reinterpret_cast<const SourceContext*>(
         &_SourceContext_default_instance_);
   }
   static constexpr int kIndexInFileMessages = 0;

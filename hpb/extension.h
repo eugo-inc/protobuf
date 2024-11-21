@@ -72,9 +72,8 @@ struct UpbExtensionTrait<int64_t> {
 // not return an error if missing but the default msg
 template <typename T>
 struct UpbExtensionTrait<T> {
-  using DefaultType = int;
-  using ReturnType = int;
-  using DefaultFuncType = void (*)();
+  using DefaultType = std::false_type;
+  using ReturnType = Ptr<const T>;
 };
 
 // -------------------------------------------------------------------
@@ -109,7 +108,11 @@ class ExtensionIdentifier {
   const upb_MiniTableExtension* mini_table_ext_;
 
   typename UpbExtensionTrait<ExtensionType>::ReturnType default_value() const {
-    return default_val_;
+    if constexpr (IsHpbClass<ExtensionType>) {
+      return ExtensionType::default_instance();
+    } else {
+      return default_val_;
+    }
   }
 
   typename UpbExtensionTrait<ExtensionType>::DefaultType default_val_;
@@ -124,26 +127,37 @@ upb_ExtensionRegistry* GetUpbExtensions(
 
 class ExtensionRegistry {
  public:
-  ExtensionRegistry(
-      const std::vector<const upb_MiniTableExtension*>& extensions,
-      const upb::Arena& arena)
-      : registry_(upb_ExtensionRegistry_New(arena.ptr())) {
+  explicit ExtensionRegistry(const upb::Arena& arena)
+      : registry_(upb_ExtensionRegistry_New(arena.ptr())) {}
+
+  template <typename ExtensionIdentifier>
+  void AddExtension(const ExtensionIdentifier& id) {
     if (registry_) {
-      for (const auto extension : extensions) {
-        const auto* ext = extension;
-        bool success = upb_ExtensionRegistry_AddArray(registry_, &ext, 1);
-        if (!success) {
-          registry_ = nullptr;
-          break;
-        }
+      auto* extension = id.mini_table_ext();
+      bool success = upb_ExtensionRegistry_AddArray(registry_, &extension, 1);
+      if (!success) {
+        registry_ = nullptr;
       }
     }
+  }
+
+  static const ExtensionRegistry& generated_registry() {
+    static const ExtensionRegistry* r = NewGeneratedRegistry();
+    return *r;
   }
 
  private:
   friend upb_ExtensionRegistry* ::hpb::internal::GetUpbExtensions(
       const ExtensionRegistry& extension_registry);
   upb_ExtensionRegistry* registry_;
+
+  // TODO: b/379100963 - Introduce ShutdownHpbLibrary
+  static const ExtensionRegistry* NewGeneratedRegistry() {
+    static upb::Arena* global_arena = new upb::Arena();
+    ExtensionRegistry* registry = new ExtensionRegistry(*global_arena);
+    upb_ExtensionRegistry_AddAllLinkedExtensions(registry->registry_);
+    return registry;
+  }
 };
 
 template <typename T, typename Extendee, typename Extension,
@@ -266,26 +280,10 @@ absl::Status SetExtension(
 
 template <typename T, typename Extendee, typename Extension,
           typename = hpb::internal::EnableIfHpbClassThatHasExtensions<T>>
-absl::StatusOr<Ptr<const Extension>> GetExtension(
+absl::StatusOr<typename internal::UpbExtensionTrait<Extension>::ReturnType>
+GetExtension(
     Ptr<T> message,
     const ::hpb::internal::ExtensionIdentifier<Extendee, Extension>& id) {
-  upb_MessageValue value;
-  const bool ok = ::hpb::internal::GetOrPromoteExtension(
-      hpb::interop::upb::GetMessage(message), id.mini_table_ext(),
-      hpb::interop::upb::GetArena(message), &value);
-  if (!ok) {
-    return ExtensionNotFoundError(
-        upb_MiniTableExtension_Number(id.mini_table_ext()));
-  }
-  return Ptr<const Extension>(::hpb::interop::upb::MakeCHandle<Extension>(
-      (upb_Message*)value.msg_val, hpb::interop::upb::GetArena(message)));
-}
-
-template <typename T, typename Extendee, typename Extension,
-          typename = hpb::internal::EnableIfHpbClassThatHasExtensions<T>>
-decltype(auto) GetExtension(
-    const T* message,
-    const hpb::internal::ExtensionIdentifier<Extendee, Extension>& id) {
   if constexpr (std::is_integral_v<Extension>) {
     auto default_val = hpb::internal::PrivateAccess::GetDefaultValue(id);
     absl::StatusOr<Extension> res =
@@ -294,8 +292,26 @@ decltype(auto) GetExtension(
             default_val);
     return res;
   } else {
-    return GetExtension(Ptr(message), id);
+    upb_MessageValue value;
+    const bool ok = ::hpb::internal::GetOrPromoteExtension(
+        hpb::interop::upb::GetMessage(message), id.mini_table_ext(),
+        hpb::interop::upb::GetArena(message), &value);
+    if (!ok) {
+      return ExtensionNotFoundError(
+          upb_MiniTableExtension_Number(id.mini_table_ext()));
+    }
+    return Ptr<const Extension>(::hpb::interop::upb::MakeCHandle<Extension>(
+        (upb_Message*)value.msg_val, hpb::interop::upb::GetArena(message)));
   }
+}
+
+template <typename T, typename Extendee, typename Extension,
+          typename = hpb::internal::EnableIfHpbClassThatHasExtensions<T>>
+absl::StatusOr<typename internal::UpbExtensionTrait<Extension>::ReturnType>
+GetExtension(
+    const T* message,
+    const hpb::internal::ExtensionIdentifier<Extendee, Extension>& id) {
+  return GetExtension(Ptr(message), id);
 }
 
 template <typename T, typename Extension>

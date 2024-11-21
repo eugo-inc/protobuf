@@ -49,8 +49,10 @@ template <typename T>
 struct PROTOBUF_EXPORT TableStruct_google_2fprotobuf_2ftimestamp_2eproto {
   static const ::uint32_t offsets[];
 };
+extern "C" {
 PROTOBUF_EXPORT extern const ::google::protobuf::internal::DescriptorTable
     descriptor_table_google_2fprotobuf_2ftimestamp_2eproto;
+}  // extern "C"
 namespace google {
 namespace protobuf {
 class Timestamp;
@@ -122,10 +124,7 @@ class PROTOBUF_EXPORT Timestamp final
     return default_instance().GetMetadata().reflection;
   }
   static const Timestamp& default_instance() {
-    return *internal_default_instance();
-  }
-  static inline const Timestamp* internal_default_instance() {
-    return reinterpret_cast<const Timestamp*>(
+    return *reinterpret_cast<const Timestamp*>(
         &_Timestamp_default_instance_);
   }
   static constexpr int kIndexInFileMessages = 0;
