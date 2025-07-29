@@ -269,6 +269,12 @@ final class FieldSet<T extends FieldSet.FieldDescriptorLite<T>> {
     return o;
   }
 
+  /** Returns true if the field is a lazy field and it is corrupted. */
+  boolean lazyFieldCorrupted(final T descriptor) {
+    Object o = fields.get(descriptor);
+    return o instanceof LazyField && ((LazyField) o).isCorrupted();
+  }
+
   /**
    * Useful for implementing {@link Message.Builder#setField(Descriptors.FieldDescriptor,Object)}.
    */
@@ -591,9 +597,9 @@ final class FieldSet<T extends FieldSet.FieldDescriptorLite<T>> {
       CodedInputStream input, final WireFormat.FieldType type, boolean checkUtf8)
       throws IOException {
     if (checkUtf8) {
-      return WireFormat.readPrimitiveField(input, type, WireFormat.Utf8Validation.STRICT);
+      return input.readPrimitiveField(type, WireFormat.Utf8Validation.STRICT);
     } else {
-      return WireFormat.readPrimitiveField(input, type, WireFormat.Utf8Validation.LOOSE);
+      return input.readPrimitiveField(type, WireFormat.Utf8Validation.LOOSE);
     }
   }
 
@@ -884,7 +890,7 @@ final class FieldSet<T extends FieldSet.FieldDescriptorLite<T>> {
       case BOOL:
         return CodedOutputStream.computeBoolSizeNoTag((Boolean) value);
       case GROUP:
-        return CodedOutputStream.computeGroupSizeNoTag((MessageLite) value);
+        return ((MessageLite) value).getSerializedSize();
       case BYTES:
         if (value instanceof ByteString) {
           return CodedOutputStream.computeBytesSizeNoTag((ByteString) value);

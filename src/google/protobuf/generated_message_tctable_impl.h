@@ -134,6 +134,7 @@ enum FieldRep : uint16_t {
   kRepCord     = 2 << kRepShift,  // absl::Cord
   kRepSPiece   = 3 << kRepShift,  // StringPieceField
   kRepSString  = 4 << kRepShift,  // std::string*
+  kRepMString  = 5 << kRepShift,  // MicroString
   // Message types (WT=2 unless otherwise noted):
   kRepMessage  = 0,               // MessageLite*
   kRepGroup    = 1 << kRepShift,  // MessageLite* (WT=3,4)
@@ -252,12 +253,12 @@ enum FieldType : uint16_t {
 }  // namespace field_layout
 
 #ifndef NDEBUG
-PROTOBUF_EXPORT void AlignFail(std::integral_constant<size_t, 4>,
-                               std::uintptr_t address);
-PROTOBUF_EXPORT void AlignFail(std::integral_constant<size_t, 8>,
-                               std::uintptr_t address);
+[[noreturn]] PROTOBUF_EXPORT void AlignFail(std::integral_constant<size_t, 4>,
+                                            std::uintptr_t address);
+[[noreturn]] PROTOBUF_EXPORT void AlignFail(std::integral_constant<size_t, 8>,
+                                            std::uintptr_t address);
 inline void AlignFail(std::integral_constant<size_t, 1>,
-                      std::uintptr_t address) {}
+                      std::uintptr_t /*address*/) {}
 #endif
 
 #define PROTOBUF_TC_PARSE_FUNCTION_LIST_SINGLE(fn) \
@@ -354,6 +355,9 @@ inline void AlignFail(std::integral_constant<size_t, 1>,
   PROTOBUF_TC_PARSE_FUNCTION_LIST_SINGLE(FastBc)                  \
   PROTOBUF_TC_PARSE_FUNCTION_LIST_SINGLE(FastSc)                  \
   PROTOBUF_TC_PARSE_FUNCTION_LIST_SINGLE(FastUc)                  \
+  PROTOBUF_TC_PARSE_FUNCTION_LIST_SINGLE(FastBm)                  \
+  PROTOBUF_TC_PARSE_FUNCTION_LIST_SINGLE(FastSm)                  \
+  PROTOBUF_TC_PARSE_FUNCTION_LIST_SINGLE(FastUm)                  \
   PROTOBUF_TC_PARSE_FUNCTION_LIST_REPEATED(FastGd)                \
   PROTOBUF_TC_PARSE_FUNCTION_LIST_REPEATED(FastGt)                \
   PROTOBUF_TC_PARSE_FUNCTION_LIST_REPEATED(FastMd)                \
@@ -609,7 +613,7 @@ class PROTOBUF_EXPORT TcParser final {
 
   // Functions referenced by generated fast tables (string types):
   //   B: bytes      S: string     U: UTF-8 string
-  //   (empty): ArenaStringPtr     i: InlinedString
+  //   (empty): ArenaStringPtr   i: InlinedString   c: Cord   m: MicroString
   //   S: singular   R: repeated
   //   1/2: tag length (bytes)
   PROTOBUF_NOINLINE PROTOBUF_CC static const char* FastBS1(
@@ -661,6 +665,19 @@ class PROTOBUF_EXPORT TcParser final {
   PROTOBUF_NOINLINE PROTOBUF_CC static const char* FastUcS1(
       PROTOBUF_TC_PARAM_DECL);
   PROTOBUF_NOINLINE PROTOBUF_CC static const char* FastUcS2(
+      PROTOBUF_TC_PARAM_DECL);
+
+  PROTOBUF_NOINLINE PROTOBUF_CC static const char* FastBmS1(
+      PROTOBUF_TC_PARAM_DECL);
+  PROTOBUF_NOINLINE PROTOBUF_CC static const char* FastBmS2(
+      PROTOBUF_TC_PARAM_DECL);
+  PROTOBUF_NOINLINE PROTOBUF_CC static const char* FastSmS1(
+      PROTOBUF_TC_PARAM_DECL);
+  PROTOBUF_NOINLINE PROTOBUF_CC static const char* FastSmS2(
+      PROTOBUF_TC_PARAM_DECL);
+  PROTOBUF_NOINLINE PROTOBUF_CC static const char* FastUmS1(
+      PROTOBUF_TC_PARAM_DECL);
+  PROTOBUF_NOINLINE PROTOBUF_CC static const char* FastUmS2(
       PROTOBUF_TC_PARAM_DECL);
 
   // Functions referenced by generated fast tables (message types):
@@ -720,8 +737,6 @@ class PROTOBUF_EXPORT TcParser final {
                            0)) {
       AlignFail(std::integral_constant<size_t, alignof(T)>(),
                 reinterpret_cast<uintptr_t>(target));
-      // Explicit abort to let compilers know this code-path does not return
-      abort();
     }
 #endif
     return *target;
@@ -738,8 +753,6 @@ class PROTOBUF_EXPORT TcParser final {
                            0)) {
       AlignFail(std::integral_constant<size_t, alignof(T)>(),
                 reinterpret_cast<uintptr_t>(target));
-      // Explicit abort to let compilers know this code-path does not return
-      abort();
     }
 #endif
     return *target;
@@ -800,25 +813,19 @@ class PROTOBUF_EXPORT TcParser final {
       PROTOBUF_TC_PARAM_DECL);
 
   // For `map` mini parsing generate a type card for the key/value.
-  template <typename MapField>
   static constexpr MapAuxInfo GetMapAuxInfo(bool fail_on_utf8_failure,
                                             bool log_debug_utf8_failure,
                                             bool validated_enum_value,
-                                            int key_type, int value_type) {
-    using MapType = typename MapField::MapType;
-    using Node = typename MapType::Node;
-    static_assert(alignof(Node) == alignof(NodeBase), "");
-    // Verify the assumption made in MpMap, guaranteed by Map<>.
-    assert(PROTOBUF_FIELD_OFFSET(Node, kv.first) == sizeof(NodeBase));
+                                            int key_type, int value_type,
+                                            bool is_lite) {
     return {
-        MakeMapTypeCard(static_cast<WireFormatLite::FieldType>(key_type)),
-        MakeMapTypeCard(static_cast<WireFormatLite::FieldType>(value_type)),
+        MakeMapTypeCard(1, static_cast<WireFormatLite::FieldType>(key_type)),
+        MakeMapTypeCard(2, static_cast<WireFormatLite::FieldType>(value_type)),
         true,
-        !std::is_base_of<MapFieldBaseForParse, MapField>::value,
+        is_lite,
         fail_on_utf8_failure,
         log_debug_utf8_failure,
         validated_enum_value,
-        Node::size_info(),
     };
   }
 
@@ -1007,22 +1014,15 @@ class PROTOBUF_EXPORT TcParser final {
 
   static void WriteMapEntryAsUnknown(MessageLite* msg,
                                      const TcParseTableBase* table,
-                                     uint32_t tag, NodeBase* node,
-                                     MapAuxInfo map_info);
+                                     UntypedMapBase& map, uint32_t tag,
+                                     NodeBase* node, MapAuxInfo map_info);
 
-  static void InitializeMapNodeEntry(void* obj, MapTypeCard type_card,
-                                     UntypedMapBase& map,
-                                     const TcParseTableBase::FieldAux* aux,
-                                     bool is_key);
-  PROTOBUF_NOINLINE
-  static void DestroyMapNode(NodeBase* node, MapAuxInfo map_info,
-                             UntypedMapBase& map);
   static const char* ParseOneMapEntry(NodeBase* node, const char* ptr,
                                       ParseContext* ctx,
                                       const TcParseTableBase::FieldAux* aux,
                                       const TcParseTableBase* table,
                                       const TcParseTableBase::FieldEntry& entry,
-                                      Arena* arena);
+                                      UntypedMapBase& map);
 
   // Mini field lookup:
   static const TcParseTableBase::FieldEntry* FindFieldEntry(
@@ -1032,7 +1032,12 @@ class PROTOBUF_EXPORT TcParser final {
                                      const TcParseTableBase::FieldEntry*);
   static int FieldNumber(const TcParseTableBase* table,
                          const TcParseTableBase::FieldEntry*);
-  static bool ChangeOneof(const TcParseTableBase* table,
+  static void InitOneof(const TcParseTableBase* table,
+                        const TcParseTableBase* inner_table,
+                        const TcParseTableBase::FieldEntry& entry,
+                        MessageLite* msg);
+  static void ChangeOneof(const TcParseTableBase* table,
+                          const TcParseTableBase* inner_table,
                           const TcParseTableBase::FieldEntry& entry,
                           uint32_t field_num, ParseContext* ctx,
                           MessageLite* msg);

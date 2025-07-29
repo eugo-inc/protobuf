@@ -7,7 +7,7 @@
 
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("@bazel_skylib//lib:selects.bzl", "selects")
-load("@pip_deps//:requirements.bzl", "requirement")
+load("@protobuf_pip_deps//:requirements.bzl", "requirement")
 load("@rules_pkg//pkg:mappings.bzl", "pkg_files", "strip_prefix")
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 load("@rules_python//python:packaging.bzl", "py_wheel")
@@ -84,6 +84,27 @@ config_setting(
     },
 )
 
+# s390x support is community-maintained and not officially supported. We do not
+# publish s390x wheels.
+config_setting(
+    name = "linux_s390x_release_unused",
+    flag_values = {
+        "//toolchain:release": "True",
+    },
+    values = {"cpu": "linux-s390x"},
+)
+
+config_setting(
+    name = "linux_s390x_local_unused",
+    constraint_values = [
+        "@platforms//os:linux",
+        "@platforms//cpu:s390x",
+    ],
+    flag_values = {
+        "//toolchain:release": "False",
+    },
+)
+
 config_setting(
     name = "osx_x86_64_release",
     flag_values = {
@@ -109,6 +130,7 @@ selects.config_setting_group(
         ":osx_x86_64_release",
         ":osx_x86_64_local",
     ],
+    visibility = ["//python:__subpackages__"],
 )
 
 config_setting(
@@ -136,6 +158,7 @@ selects.config_setting_group(
         ":osx_aarch64_release",
         ":osx_aarch64_local",
     ],
+    visibility = ["//python:__subpackages__"],
 )
 
 config_setting(
@@ -168,6 +191,7 @@ selects.config_setting_group(
         ":windows_x86_32_release",
         ":windows_x86_32_local",
     ],
+    visibility = ["//python:__subpackages__"],
 )
 
 config_setting(
@@ -278,24 +302,28 @@ pkg_tar(
     }),
 )
 
+sh_binary(
+    name = "setup_wrapper",
+    srcs = ["setup_wrapper.sh"],
+    data = [requirement("setuptools")],
+    visibility = ["//visibility:private"],
+)
+
 genrule(
     name = "source_wheel",
     srcs = [":source_tarball"],
     outs = ["protobuf-%s.tar.gz" % PROTOBUF_PYTHON_VERSION],
     cmd = """
-        export PYTHONPATH=$$PWD/external/pip_deps_setuptools/site-packages
         set -eux
         tar -xzvf $(location :source_tarball)
-        cd protobuf/
-        python3 setup.py sdist
-        cd ..
+        $(location :setup_wrapper) sdist
         mv protobuf/dist/*.tar.gz $@
     """,
     target_compatible_with = select({
         "@system_python//:none": ["@platforms//:incompatible"],
         "//conditions:default": [],
     }),
-    tools = [requirement("setuptools")],
+    tools = [":setup_wrapper"],
 )
 
 py_wheel(
@@ -326,6 +354,8 @@ py_wheel(
         ":linux_x86_64_release": "manylinux2014_x86_64",
         ":linux_aarch64_local": "linux_aarch64",
         ":linux_aarch64_release": "manylinux2014_aarch64",
+        ":linux_s390x_local_unused": "linux_s390x",
+        ":linux_s390x_release_unused": "manylinux2014_s390x",
         ":osx_universal2": "macosx_10_9_universal2",
         ":osx_aarch64": "macosx_11_0_arm64",
         ":windows_x86_32": "win32",
@@ -423,8 +453,8 @@ py_wheel(
         "//:python_common_test_protos",
         "//:python_specific_test_protos",
         "//:python_test_srcs",
-        "//python/pb_unit_tests:test_files",
         "//src/google/protobuf:testdata",
+        "@com_google_absl_py//absl/testing:parameterized",
     ],
 )
 

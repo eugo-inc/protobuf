@@ -57,7 +57,9 @@ class TestGenerator : public CodeGenerator {
   }
 
   Edition GetMinimumEdition() const override { return Edition::EDITION_PROTO2; }
-  Edition GetMaximumEdition() const override { return Edition::EDITION_2023; }
+  Edition GetMaximumEdition() const override {
+    return Edition::EDITION_2024;
+  }
 };
 
 // This test verifies that all the expected insertion points exist.  It does
@@ -103,7 +105,7 @@ TEST(JavaPluginTest, PluginTest) {
   ABSL_CHECK_OK(
       File::GetContents(absl::StrCat(::testing::TempDir(), "/Test.java"),
                         &output, true));
-  std::vector<std::string> lines = absl::StrSplit(output, "\n");
+  std::vector<std::string> lines = absl::StrSplit(output, '\n');
   bool found_generated_annotation = false;
   bool found_do_not_edit = false;
   for (const auto& line : lines) {

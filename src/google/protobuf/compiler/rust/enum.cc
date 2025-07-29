@@ -25,6 +25,7 @@
 #include "google/protobuf/compiler/rust/context.h"
 #include "google/protobuf/compiler/rust/naming.h"
 #include "google/protobuf/descriptor.h"
+#include "upb/reflection/def.hpp"
 
 namespace google {
 namespace protobuf {
@@ -94,6 +95,30 @@ void TypeConversions(Context& ctx, const EnumDescriptor& desc) {
   }
 }
 
+void MiniTable(Context& ctx, const EnumDescriptor& desc,
+               upb::EnumDefPtr upb_enum) {
+  if (ctx.is_cpp() || !desc.is_closed()) {
+    return;
+  }
+  std::string mini_descriptor = upb_enum.MiniDescriptorEncode();
+  ctx.Emit({{"mini_descriptor", mini_descriptor},
+            {"mini_descriptor_length", mini_descriptor.size()}},
+           R"rs(
+    unsafe impl $pbr$::AssociatedMiniTableEnum for $name$ {
+      fn mini_table() -> *const $pbr$::upb_MiniTableEnum {
+        static MINI_TABLE: $std$::sync::OnceLock<$pbr$::MiniTableEnumPtr> =
+            $std$::sync::OnceLock::new();
+        MINI_TABLE.get_or_init(|| unsafe {
+          $pbr$::MiniTableEnumPtr($pbr$::upb_MiniTableEnum_Build(
+              "$mini_descriptor$".as_ptr(), $mini_descriptor_length$,
+              $pbr$::THREAD_LOCAL_ARENA.with(|a| a.raw()),
+              $std$::ptr::null_mut()))
+        }).0
+      }
+    }
+  )rs");
+}
+
 }  // namespace
 
 std::vector<RustEnumValue> EnumValues(
@@ -135,7 +160,8 @@ std::vector<RustEnumValue> EnumValues(
   return result;
 }
 
-void GenerateEnumDefinition(Context& ctx, const EnumDescriptor& desc) {
+void GenerateEnumDefinition(Context& ctx, const EnumDescriptor& desc,
+                            upb::EnumDefPtr upb_enum) {
   std::string name = EnumRsName(desc);
   ABSL_CHECK(desc.value_count() > 0);
   std::vector<RustEnumValue> values =
@@ -161,6 +187,29 @@ void GenerateEnumDefinition(Context& ctx, const EnumDescriptor& desc) {
                             )rs");
                }
              }
+           }},
+          {"constant_name_fn",
+           [&] {
+             ctx.Emit({{"name_cases",
+                        [&] {
+                          for (const auto& value : values) {
+                            std::string number_str = absl::StrCat(value.number);
+                            ctx.Emit({{"variant_name", value.name},
+                                      {"number", number_str}},
+                                     R"rs(
+                              $number$ => "$variant_name$",
+                            )rs");
+                          }
+                        }}},
+                      R"rs(
+                fn constant_name(&self) -> $Option$<&'static str> {
+                  #[allow(unreachable_patterns)] // In the case of aliases, just emit them all and let the first one match.
+                  Some(match self.0 {
+                    $name_cases$
+                    _ => return None
+                  })
+                }
+              )rs");
            }},
           // The default value of an enum is the first listed value.
           // The compiler checks that this is equal to 0 for open enums.
@@ -198,15 +247,18 @@ void GenerateEnumDefinition(Context& ctx, const EnumDescriptor& desc) {
              }
            }},
           {"type_conversions_impl", [&] { TypeConversions(ctx, desc); }},
+          {"mini_table", [&] { MiniTable(ctx, desc, upb_enum); }},
       },
       R"rs(
       #[repr(transparent)]
-      #[derive(Clone, Copy, PartialEq, Eq)]
+      #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
       pub struct $name$(i32);
 
       #[allow(non_upper_case_globals)]
       impl $name$ {
         $variants$
+
+        $constant_name_fn$
       }
 
       impl $std$::convert::From<$name$> for i32 {
@@ -225,7 +277,11 @@ void GenerateEnumDefinition(Context& ctx, const EnumDescriptor& desc) {
 
       impl $std$::fmt::Debug for $name$ {
         fn fmt(&self, f: &mut $std$::fmt::Formatter<'_>) -> $std$::fmt::Result {
-          f.debug_tuple(stringify!($name$)).field(&self.0).finish()
+          if let Some(constant_name) = self.constant_name() {
+            write!(f, "$name$::{}", constant_name)
+          } else {
+            write!(f, "$name$::from({})", self.0)
+          }
         }
       }
 
@@ -332,6 +388,8 @@ void GenerateEnumDefinition(Context& ctx, const EnumDescriptor& desc) {
       }
 
       $type_conversions_impl$
+
+      $mini_table$
       )rs");
 }
 

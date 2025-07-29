@@ -72,7 +72,6 @@ else()
     absl::flat_hash_set
     absl::function_ref
     absl::hash
-    absl::if_constexpr
     absl::layout
     absl::log_initialize
     absl::log_globals
@@ -80,7 +79,6 @@ else()
     absl::memory
     absl::node_hash_map
     absl::node_hash_set
-    absl::optional
     absl::random_distributions
     absl::random_random
     absl::span
@@ -91,7 +89,6 @@ else()
     absl::time
     absl::type_traits
     absl::utility
-    absl::variant
   )
   set(protobuf_ABSL_USED_TEST_TARGETS
     absl::scoped_mock_log

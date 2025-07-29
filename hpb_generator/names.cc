@@ -5,14 +5,15 @@
 // license that can be found in the LICENSE file or at
 // https://developers.google.com/open-source/licenses/bsd
 
-#include "google/protobuf/compiler/hpb/names.h"
+#include "hpb_generator/names.h"
 
 #include <string>
 
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "google/protobuf/compiler/code_generator.h"
-#include "google/protobuf/compiler/hpb/context.h"
-#include "google/protobuf/compiler/hpb/keywords.h"
+#include "hpb_generator/context.h"
+#include "hpb_generator/keywords.h"
 
 namespace google::protobuf::hpb_generator {
 namespace protobuf = ::proto2;
@@ -100,11 +101,7 @@ std::string QualifiedInternalClassName(const protobuf::Descriptor* descriptor) {
 }
 
 std::string CppSourceFilename(const google::protobuf::FileDescriptor* file) {
-  return compiler::StripProto(file->name()) + ".upb.proto.cc";
-}
-
-std::string ForwardingHeaderFilename(const google::protobuf::FileDescriptor* file) {
-  return compiler::StripProto(file->name()) + ".upb.fwd.h";
+  return compiler::StripProto(file->name()) + ".hpb.cc";
 }
 
 std::string UpbCFilename(const google::protobuf::FileDescriptor* file) {
@@ -112,7 +109,7 @@ std::string UpbCFilename(const google::protobuf::FileDescriptor* file) {
 }
 
 std::string CppHeaderFilename(const google::protobuf::FileDescriptor* file) {
-  return compiler::StripProto(file->name()) + ".upb.proto.h";
+  return absl::StrCat(compiler::StripProto(file->name()), ".hpb.h");
 }
 
 std::string CppConstType(const protobuf::FieldDescriptor* field) {

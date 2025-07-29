@@ -12,7 +12,9 @@
 #ifndef GOOGLE_PROTOBUF_COMPILER_CPP_HELPERS_H__
 #define GOOGLE_PROTOBUF_COMPILER_CPP_HELPERS_H__
 
+#include <cstdint>
 #include <iterator>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <type_traits>
@@ -23,7 +25,6 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "absl/types/span.h"
 #include "google/protobuf/compiler/code_generator.h"
 #include "google/protobuf/compiler/cpp/names.h"
@@ -255,6 +256,10 @@ std::string PrimitiveTypeName(const Options& options,
 // methods of WireFormat.  For example, TYPE_INT32 becomes "Int32".
 const char* DeclaredTypeMethodName(FieldDescriptor::Type type);
 
+// Get the declared cpp_type name in CamelCase format, as is used e.g. for the
+// methods of v2 WireFormat.  For example, CPPTYPE_INT32 becomes "Int32".
+absl::string_view DeclaredCppTypeMethodName(FieldDescriptor::CppType type);
+
 // Return the code that evaluates to the number when compiled.
 std::string Int32ToString(int number);
 
@@ -358,21 +363,41 @@ inline bool IsString(const FieldDescriptor* field) {
 }
 
 
+bool IsArenaStringPtr(const FieldDescriptor* field, const Options& opts);
+bool IsMicroString(const FieldDescriptor* field, const Options& opts);
+
 bool IsProfileDriven(const Options& options);
 
 // Returns true if `field` is unlikely to be present based on PDProto profile.
-bool IsRarelyPresent(const FieldDescriptor* field, const Options& options);
+PROTOC_EXPORT bool IsRarelyPresent(const FieldDescriptor* field,
+                                   const Options& options);
 
 // Returns true if `field` is likely to be present based on PDProto profile.
 bool IsLikelyPresent(const FieldDescriptor* field, const Options& options);
 
-float GetPresenceProbability(const FieldDescriptor* field,
+std::optional<float> GetPresenceProbability(const FieldDescriptor* field,
+                                            const Options& options);
+
+// GetFieldGroupPresenceProbability computes presence probability for a group of
+// fields. It uses the absence probability (easier to compute)
+// (1 - p1) * (1 - p2) * ... * (1 - pn), and in the end the aggregate presence
+// probability can be expressed as (1 - all_absent_probability).
+std::optional<float> GetFieldGroupPresenceProbability(
+    const std::vector<const FieldDescriptor*>& fields, const Options& options);
+
+// Returns the "hasbit mode" of the field, which may depend on profile data.
+internal::cpp::HasbitMode GetFieldHasbitMode(const FieldDescriptor* field,
+                                             const Options& options);
+
+// Returns true if there are hasbits for the field, which may depend on profile
+// data.
+PROTOC_EXPORT bool HasHasbit(const FieldDescriptor* field,
                              const Options& options);
 
 bool IsStringInliningEnabled(const Options& options);
 
 // Returns true if the provided field is a singular string and can be inlined.
-bool CanStringBeInlined(const FieldDescriptor* field);
+bool CanStringBeInlined(const FieldDescriptor* field, const Options& options);
 
 // Returns true if `field` is a string field that can and should be inlined
 // based on PDProto profile.
@@ -444,10 +469,11 @@ VerifySimpleType ShouldVerifySimple(const Descriptor* descriptor);
 
 
 // Is the given message being split (go/pdsplit)?
-bool ShouldSplit(const Descriptor* desc, const Options& options);
+PROTOC_EXPORT bool ShouldSplit(const Descriptor* desc, const Options& options);
 
 // Is the given field being split out?
-bool ShouldSplit(const FieldDescriptor* field, const Options& options);
+PROTOC_EXPORT bool ShouldSplit(const FieldDescriptor* field,
+                               const Options& options);
 
 // Should we generate code that force creating an allocation in the constructor
 // of the given message?
@@ -473,23 +499,40 @@ bool HasRepeatedFields(const FileDescriptor* file);
 // does not include extensions, since ctype is ignored for extensions.
 bool HasStringPieceFields(const FileDescriptor* file, const Options& options);
 
+// Does the file have any string/bytes fields?.  This excludes cord and string
+// piece fields.
+bool HasRegularStringFields(const FileDescriptor* file, const Options& options);
+
 // Does the file have any string/bytes fields with ctype=CORD? This does not
 // include extensions, since ctype is ignored for extensions.
 bool HasCordFields(const FileDescriptor* file, const Options& options);
 
 // Does the file have any map fields, necessitating the file to include
-// map_field_inl.h and map.h.
+// map_field.h and map.h.
 bool HasMapFields(const FileDescriptor* file);
 
 // Does this file have any enum type definitions?
 bool HasEnumDefinitions(const FileDescriptor* file);
 
 // Returns true if any message in the file can have v2 table.
-bool HasV2Table(const FileDescriptor* file, const Options& options);
+bool HasV2MessageTable(const FileDescriptor* file, const Options& options);
+bool HasV2ParseTable(const FileDescriptor* file, const Options& options);
+
+bool IsV2ParseEnabledForMessage(const Descriptor* descriptor,
+                                const Options& options);
 
 // Returns true if a message (descriptor) can have v2 table.
 bool IsV2EnabledForMessage(const Descriptor* descriptor,
                            const Options& options);
+
+#ifdef PROTOBUF_INTERNAL_V2_EXPERIMENT
+bool IsV2CodegenEnabled(const Options& options);
+bool ShouldGenerateV2Code(const Descriptor* descriptor, const Options& options);
+
+// Returns true if a field can be batched.
+bool IsEligibleForV2Batching(const FieldDescriptor* field);
+bool HasFieldEligibleForV2Batching(const Descriptor* descriptor);
+#endif  // PROTOBUF_INTERNAL_V2_EXPERIMENT
 
 // Does this file have generated parsing, serialization, and other
 // standard methods for which reflection-based fallback implementations exist?
@@ -710,6 +753,18 @@ void ListAllFields(const Descriptor* d,
                    std::vector<const FieldDescriptor*>* fields);
 void ListAllFields(const FileDescriptor* d,
                    std::vector<const FieldDescriptor*>* fields);
+
+// Returns true if the field's position in the message is chosen by the layout
+// optimizer.
+bool IsLayoutOptimized(const FieldDescriptor* field, const Options& options);
+
+// Collects all fields from the given descriptor, excluding weak fields and
+// fields in oneofs.
+//
+// Returns the number of weak fields.
+int CollectFieldsExcludingWeakAndOneof(
+    const Descriptor* d, const Options& options,
+    std::vector<const FieldDescriptor*>& fields);
 
 template <bool do_nested_types, class T>
 void ForEachField(const Descriptor* d, T&& func) {
@@ -1101,6 +1156,8 @@ void GenerateUtf8CheckCodeForCord(io::Printer* p, const FieldDescriptor* field,
                                   const Options& options, bool for_parse,
                                   absl::string_view parameters);
 
+bool IsStrictUtf8String(const FieldDescriptor* field, const Options& options);
+
 inline bool ShouldGenerateExternSpecializations(const Options& options) {
   // For OSS we omit the specializations to reduce codegen size.
   // Some compilers can't handle that much input in a single translation unit.
@@ -1156,8 +1213,8 @@ bool HasMessageFieldOrExtension(const Descriptor* desc);
 // be annotated with `field`.
 std::vector<io::Printer::Sub> AnnotatedAccessors(
     const FieldDescriptor* field, absl::Span<const absl::string_view> prefixes,
-    absl::optional<google::protobuf::io::AnnotationCollector::Semantic> semantic =
-        absl::nullopt);
+    std::optional<google::protobuf::io::AnnotationCollector::Semantic> semantic =
+        std::nullopt);
 
 // Check whether `file` represents the .proto file FileDescriptorProto and
 // friends. This file needs special handling because it must be usable during
@@ -1184,18 +1241,63 @@ bool HasOnDeserializeTracker(const Descriptor* descriptor,
 bool NeedsPostLoopHandler(const Descriptor* descriptor, const Options& options);
 
 // Emit the repeated field getter for the custom options.
-// If safe_boundary_check is specified, it calls the internal checked getter.
+// Depending on the bounds check mode specified, this will emit the
+// corresponding getter.
 inline auto GetEmitRepeatedFieldGetterSub(const Options& options,
                                           io::Printer* p) {
   return io::Printer::Sub{
       "getter",
       [&options, p] {
-        if (options.safe_boundary_check) {
-          p->Emit(R"cc(
-            $pbi$::CheckedGetOrDefault(_internal_$name_internal$(), index)
-          )cc");
-        } else {
-          p->Emit(R"cc(_internal_$name_internal$().Get(index))cc");
+        switch (options.bounds_check_mode) {
+          case BoundsCheckMode::kNoEnforcement:
+            p->Emit(R"cc(_internal_$name_internal$().Get(index))cc");
+            break;
+          case BoundsCheckMode::kReturnDefaultValue:
+            p->Emit(R"cc(
+              $pbi$::CheckedGetOrDefault(_internal_$name_internal$(), index)
+            )cc");
+            break;
+          case BoundsCheckMode::kAbort:
+            p->Emit(R"cc(
+              $pbi$::CheckedGetOrAbort(_internal_$name_internal$(), index)
+            )cc");
+            break;
+        }
+      }}
+      .WithSuffix("");
+}
+
+// Emit the code for getting a mutable element from a repeated field. This will
+// generate different code depending on the `bounds_check_mode` specified in the
+// options.
+// TODO: b/347304492 Harden this function by taking in the field and checking
+// if splitting is supported.
+inline auto GetEmitRepeatedFieldMutableSub(const Options& options,
+                                           io::Printer* p,
+                                           bool use_stringpiecefield = false) {
+  return io::Printer::Sub{
+      "mutable",
+      [&options, p, use_stringpiecefield] {
+        switch (options.bounds_check_mode) {
+          case BoundsCheckMode::kNoEnforcement:
+          case BoundsCheckMode::kReturnDefaultValue:
+            if (use_stringpiecefield) {
+              p->Emit("$field$.Mutable(index)");
+            } else {
+              p->Emit(
+                  R"cc(_internal_mutable_$name_internal$()->Mutable(index))cc");
+            }
+            break;
+          case BoundsCheckMode::kAbort:
+            if (use_stringpiecefield) {
+              p->Emit("$pbi$::CheckedMutableOrAbort(&$field$, index)");
+            } else {
+              p->Emit(R"cc(
+                $pbi$::CheckedMutableOrAbort(
+                    _internal_mutable_$name_internal$(), index)
+              )cc");
+            }
+            break;
         }
       }}
       .WithSuffix("");

@@ -49,9 +49,6 @@ namespace protobuf {
 namespace compiler {
 namespace java {
 
-using internal::WireFormat;
-using internal::WireFormatLite;
-
 // ===================================================================
 ImmutableMessageLiteGenerator::ImmutableMessageLiteGenerator(
     const Descriptor* descriptor, Context* context)
@@ -149,7 +146,7 @@ void ImmutableMessageLiteGenerator::Generate(io::Printer* printer) {
   absl::flat_hash_map<absl::string_view, std::string> variables = {{"{", ""},
                                                                    {"}", ""}};
   variables["static"] = is_own_file ? " " : " static ";
-  variables["classname"] = descriptor_->name();
+  variables["classname"] = std::string(descriptor_->name());
   variables["extra_interfaces"] = ExtraMessageInterfaces(descriptor_);
   variables["deprecation"] =
       descriptor_->options().deprecated() ? "@java.lang.Deprecated " : "";

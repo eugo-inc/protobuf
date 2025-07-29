@@ -2,10 +2,8 @@
 
 load("@bazel_skylib//rules:common_settings.bzl", "string_flag")
 load("@rules_pkg//pkg:mappings.bzl", "pkg_filegroup", "pkg_files", "strip_prefix")
-load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 load("//bazel/toolchains:proto_lang_toolchain.bzl", "proto_lang_toolchain")
-load("//rust:dist.bzl", "pkg_cross_compiled_binaries")
 
 licenses(["notice"])
 
@@ -61,7 +59,6 @@ PROTOBUF_SHARED = [
     "optional.rs",
     "prelude.rs",
     "primitive.rs",
-    "proto_macro.rs",
     "proxied.rs",
     "repeated.rs",
     "shared.rs",
@@ -91,6 +88,7 @@ rust_library(
     srcs = PROTOBUF_SHARED + ["upb.rs"],
     crate_root = "shared.rs",
     proc_macro_deps = [
+        "//rust/proto_proc_macro",
         "@crate_index//:paste",
     ],
     rustc_flags = [
@@ -137,6 +135,7 @@ rust_library(
     srcs = PROTOBUF_SHARED + ["cpp.rs"],
     crate_root = "shared.rs",
     proc_macro_deps = [
+        "//rust/proto_proc_macro",
         "@crate_index//:paste",
     ],
     rustc_flags = [
@@ -225,6 +224,8 @@ proto_lang_toolchain(
     name = "proto_rust_upb_toolchain",
     command_line = "--rust_out=$(OUT)",
     output_files = "multiple",
+    plugin = "//src/google/protobuf/compiler/rust:protoc-gen-rust",
+    plugin_format_flag = "--plugin=protoc-gen-rust=%s",
     progress_message = "Generating Rust proto_library %{label}",
     runtime = ":protobuf_upb",
     visibility = ["//visibility:public"],
@@ -234,6 +235,8 @@ proto_lang_toolchain(
     name = "proto_rust_cpp_toolchain",
     command_line = "--rust_out=$(OUT)",
     output_files = "multiple",
+    plugin = "//src/google/protobuf/compiler/rust:protoc-gen-rust",
+    plugin_format_flag = "--plugin=protoc-gen-rust=%s",
     progress_message = "Generating Rust proto_library %{label}",
     runtime = ":protobuf_cpp",
     visibility = ["//visibility:public"],
@@ -261,29 +264,20 @@ config_setting(
     },
 )
 
-# Note: strip_prefix.from_pkg() should work for this below, but has surprising behavior in bazel
-# with filegroups and so we only use strip_prefix.from_root() and this constant instead.
-SRC_ROOT = "rust"
-
 pkg_files(
     name = "rust_protobuf_src",
-    srcs = ALL_RUST_SRCS,
-    strip_prefix = strip_prefix.from_root(SRC_ROOT),
-)
-
-pkg_files(
-    name = "crate_root_files",
-    srcs = ["//rust/cargo:srcs"],
-    strip_prefix = strip_prefix.from_root(SRC_ROOT + "/cargo"),
+    srcs = ALL_RUST_SRCS + ["proto_macro.rs"],
+    strip_prefix = strip_prefix.from_root("rust"),
 )
 
 pkg_filegroup(
     name = "rust_protobuf_src_dir",
     srcs = [
         ":rust_protobuf_src",
-        "//rust/upb:rust_protobuf_upb_src",
+        "//rust/upb:src",
     ],
     prefix = "src",
+    visibility = ["//rust/release_crates:__subpackages__"],
 )
 
 pkg_files(
@@ -299,117 +293,10 @@ pkg_filegroup(
         "//upb/cmake:upb_cmake_dist",
     ],
     prefix = "libupb",
+    visibility = ["//rust/release_crates:__subpackages__"],
 )
 
-pkg_tar(
-    name = "protobuf_crate_dist",
-    srcs = [
-        ":crate_root_files",
-        ":rust_protobuf_libupb_src",
-        ":rust_protobuf_src_dir",
-        "//:LICENSE",
-    ],
-)
-
-pkg_files(
-    name = "protobuf_codegen_files",
-    srcs = ["//rust/protobuf_codegen:srcs"],
-    strip_prefix = strip_prefix.from_root(SRC_ROOT + "/protobuf_codegen"),
-)
-
-pkg_tar(
-    name = "codegen_crate_dist",
-    srcs = [
-        ":protobuf_codegen_files",
-        ":vendored_protocs_dist",
-        "//:LICENSE",
-    ],
-    tags = ["manual"],
-)
-
-pkg_tar(
-    name = "codegen_crate_test",
-    srcs = [
-        ":protobuf_codegen_files",
-        ":vendored_protocs_test",
-        "//:LICENSE",
-    ],
-    tags = ["manual"],
-)
-
-pkg_files(
-    name = "codegen_example_files",
-    srcs = ["//rust/protobuf_codegen/example:srcs"],
-    strip_prefix = strip_prefix.from_root(SRC_ROOT + "/protobuf_codegen/example"),
-)
-
-pkg_tar(
-    name = "codegen_example_test",
-    srcs = [
-        ":codegen_example_files",
-        "//:LICENSE",
-    ],
-)
-
-# Bundle all protoc binaries for all platforms. Requires the toolchains to be installed.
-pkg_cross_compiled_binaries(
-    name = "vendored_protocs_dist",
-    cpus = [
-        # TODO: Re-enable these platforms once the toolchains are available.
-        # "osx-x86_64",
-        # "osx-aarch_64",
-        "linux-aarch_64",
-        "linux-ppcle_64",
-        # "linux-s390_64",
-        "linux-x86_32",
-        "linux-x86_64",
-        "win32",
-        "win64",
-    ],
-    prefix = "bin",
-    tags = ["manual"],
-    targets = [
-        "//upb_generator/minitable:protoc-gen-upb_minitable",
-        "//:protoc",
-    ],
-)
-
-# Bundle only the linux-x86_64 protoc for testing.
-pkg_cross_compiled_binaries(
-    name = "vendored_protocs_test",
-    cpus = [
-        "linux-x86_64",
-    ],
-    prefix = "bin",
-    tags = ["manual"],
-    targets = [
-        "//upb_generator/minitable:protoc-gen-upb_minitable",
-        "//:protoc",
-    ],
-)
-
-# Run the cargo test with only a bundled linux-x86_64 protoc.
-sh_binary(
-    name = "cargo_test",
-    srcs = ["cargo_test.sh"],
-    data = [
-        ":codegen_crate_test",
-        ":codegen_example_test",
-        ":protobuf_crate_dist",
-    ],
-    tags = ["manual"],
-    deps = ["@bazel_tools//tools/bash/runfiles"],
-)
-
-# Run the cargo test with all bundled protocs.
-sh_binary(
-    name = "cargo_release_test",
-    srcs = ["cargo_test.sh"],
-    data = [
-        ":codegen_crate_dist",
-        ":codegen_example_test",
-        ":protobuf_crate_dist",
-    ],
-    tags = ["manual"],
-    deps = ["@bazel_tools//tools/bash/runfiles"],
+alias(
+    name = "release",
+    actual = "//rust/release_crates:crates",
 )

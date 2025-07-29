@@ -20,20 +20,25 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
+#include <variant>
 
+#include "absl/base/attributes.h"
 #include "absl/base/optimization.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/functional/overload.h"
 #include "absl/hash/hash.h"
 #include "absl/log/absl_check.h"
 #include "absl/log/absl_log.h"
+#include "absl/numeric/bits.h"
 #include "google/protobuf/arena.h"
-#include "google/protobuf/extension_set_inl.h"
+#include "google/protobuf/extension_set_inl.h"  // IWYU pragma: keep
 #include "google/protobuf/io/coded_stream.h"
 #include "google/protobuf/message_lite.h"
 #include "google/protobuf/metadata_lite.h"
 #include "google/protobuf/parse_context.h"
 #include "google/protobuf/port.h"
 #include "google/protobuf/repeated_field.h"
+#include "google/protobuf/wire_format_lite.h"
 
 // must be last.
 #include "google/protobuf/port_def.inc"
@@ -184,6 +189,19 @@ ExtensionSet::~ExtensionSet() {
   }
 }
 
+ExtensionSet::KeyValue* ExtensionSet::AllocateFlatMap(
+    Arena* arena, uint16_t powerof2_flat_capacity) {
+  // It is important to allocate power-of-2 bytes in order to reuse
+  // allocated blocks in arena for ExtensionSet and RepeatedFields.
+  // ReturnArrayMemory is also more efficient with power-of-2 bytes, and
+  // sizeof(KeyValue) is a power-of-2 on 64-bit platforms.
+  static_assert(absl::has_single_bit(sizeof(KeyValue)) || sizeof(void*) != 8,
+                "sizeof(KeyValue) must be a power of 2");
+  ABSL_DCHECK(absl::has_single_bit(powerof2_flat_capacity));
+  return Arena::CreateArray<ExtensionSet::KeyValue>(arena,
+                                                    powerof2_flat_capacity);
+}
+
 void ExtensionSet::DeleteFlatMap(const ExtensionSet::KeyValue* flat,
                                  uint16_t flat_capacity) {
   // Arena::CreateArray already requires a trivially destructible type, but
@@ -262,105 +280,6 @@ enum { REPEATED_FIELD, OPTIONAL_FIELD };
   ABSL_DCHECK_EQ(cpp_type((EXTENSION).type), WireFormatLite::CPPTYPE_##CPPTYPE)
 
 // -------------------------------------------------------------------
-// Primitives
-
-#define PRIMITIVE_ACCESSORS(UPPERCASE, LOWERCASE, CAMELCASE)                  \
-                                                                              \
-  LOWERCASE ExtensionSet::Get##CAMELCASE(int number, LOWERCASE default_value) \
-      const {                                                                 \
-    const Extension* extension = FindOrNull(number);                          \
-    if (extension == nullptr || extension->is_cleared) {                      \
-      return default_value;                                                   \
-    } else {                                                                  \
-      ABSL_DCHECK_TYPE(*extension, OPTIONAL_FIELD, UPPERCASE);                \
-      return extension->LOWERCASE##_value;                                    \
-    }                                                                         \
-  }                                                                           \
-                                                                              \
-  const LOWERCASE& ExtensionSet::GetRef##CAMELCASE(                           \
-      int number, const LOWERCASE& default_value) const {                     \
-    const Extension* extension = FindOrNull(number);                          \
-    if (extension == nullptr || extension->is_cleared) {                      \
-      return default_value;                                                   \
-    } else {                                                                  \
-      ABSL_DCHECK_TYPE(*extension, OPTIONAL_FIELD, UPPERCASE);                \
-      return extension->LOWERCASE##_value;                                    \
-    }                                                                         \
-  }                                                                           \
-                                                                              \
-  void ExtensionSet::Set##CAMELCASE(int number, FieldType type,               \
-                                    LOWERCASE value,                          \
-                                    const FieldDescriptor* descriptor) {      \
-    Extension* extension;                                                     \
-    if (MaybeNewExtension(number, descriptor, &extension)) {                  \
-      extension->type = type;                                                 \
-      ABSL_DCHECK_EQ(cpp_type(extension->type),                               \
-                     WireFormatLite::CPPTYPE_##UPPERCASE);                    \
-      extension->is_repeated = false;                                         \
-      extension->is_pointer = false;                                          \
-    } else {                                                                  \
-      ABSL_DCHECK_TYPE(*extension, OPTIONAL_FIELD, UPPERCASE);                \
-    }                                                                         \
-    extension->is_cleared = false;                                            \
-    extension->LOWERCASE##_value = value;                                     \
-  }                                                                           \
-                                                                              \
-  LOWERCASE ExtensionSet::GetRepeated##CAMELCASE(int number, int index)       \
-      const {                                                                 \
-    const Extension* extension = FindOrNull(number);                          \
-    ABSL_CHECK(extension != nullptr)                                          \
-        << "Index out-of-bounds (field is empty).";                           \
-    ABSL_DCHECK_TYPE(*extension, REPEATED_FIELD, UPPERCASE);                  \
-    return extension->ptr.repeated_##LOWERCASE##_value->Get(index);           \
-  }                                                                           \
-                                                                              \
-  const LOWERCASE& ExtensionSet::GetRefRepeated##CAMELCASE(int number,        \
-                                                           int index) const { \
-    const Extension* extension = FindOrNull(number);                          \
-    ABSL_CHECK(extension != nullptr)                                          \
-        << "Index out-of-bounds (field is empty).";                           \
-    ABSL_DCHECK_TYPE(*extension, REPEATED_FIELD, UPPERCASE);                  \
-    return extension->ptr.repeated_##LOWERCASE##_value->Get(index);           \
-  }                                                                           \
-                                                                              \
-  void ExtensionSet::SetRepeated##CAMELCASE(int number, int index,            \
-                                            LOWERCASE value) {                \
-    Extension* extension = FindOrNull(number);                                \
-    ABSL_CHECK(extension != nullptr)                                          \
-        << "Index out-of-bounds (field is empty).";                           \
-    ABSL_DCHECK_TYPE(*extension, REPEATED_FIELD, UPPERCASE);                  \
-    extension->ptr.repeated_##LOWERCASE##_value->Set(index, value);           \
-  }                                                                           \
-                                                                              \
-  void ExtensionSet::Add##CAMELCASE(int number, FieldType type, bool packed,  \
-                                    LOWERCASE value,                          \
-                                    const FieldDescriptor* descriptor) {      \
-    Extension* extension;                                                     \
-    if (MaybeNewExtension(number, descriptor, &extension)) {                  \
-      extension->type = type;                                                 \
-      ABSL_DCHECK_EQ(cpp_type(extension->type),                               \
-                     WireFormatLite::CPPTYPE_##UPPERCASE);                    \
-      extension->is_repeated = true;                                          \
-      extension->is_pointer = true;                                           \
-      extension->is_packed = packed;                                          \
-      extension->ptr.repeated_##LOWERCASE##_value =                           \
-          Arena::Create<RepeatedField<LOWERCASE>>(arena_);                    \
-    } else {                                                                  \
-      ABSL_DCHECK_TYPE(*extension, REPEATED_FIELD, UPPERCASE);                \
-      ABSL_DCHECK_EQ(extension->is_packed, packed);                           \
-    }                                                                         \
-    extension->ptr.repeated_##LOWERCASE##_value->Add(value);                  \
-  }
-
-PRIMITIVE_ACCESSORS(INT32, int32_t, Int32)
-PRIMITIVE_ACCESSORS(INT64, int64_t, Int64)
-PRIMITIVE_ACCESSORS(UINT32, uint32_t, UInt32)
-PRIMITIVE_ACCESSORS(UINT64, uint64_t, UInt64)
-PRIMITIVE_ACCESSORS(FLOAT, float, Float)
-PRIMITIVE_ACCESSORS(DOUBLE, double, Double)
-PRIMITIVE_ACCESSORS(BOOL, bool, Bool)
-
-#undef PRIMITIVE_ACCESSORS
 
 const void* ExtensionSet::GetRawRepeatedField(int number,
                                               const void* default_value) const {
@@ -368,9 +287,7 @@ const void* ExtensionSet::GetRawRepeatedField(int number,
   if (extension == nullptr) {
     return default_value;
   }
-  // We assume that all the RepeatedField<>* pointers have the same
-  // size and alignment within the anonymous union in Extension.
-  return extension->ptr.repeated_int32_t_value;
+  return extension->raw_ptr();
 }
 
 void* ExtensionSet::MutableRawRepeatedField(int number, FieldType field_type,
@@ -418,7 +335,7 @@ void* ExtensionSet::MutableRawRepeatedField(int number, FieldType field_type,
             Arena::Create<RepeatedField<bool>>(arena_);
         break;
       case WireFormatLite::CPPTYPE_ENUM:
-        extension->ptr.repeated_enum_value =
+        extension->ptr.repeated_int32_t_value =
             Arena::Create<RepeatedField<int>>(arena_);
         break;
       case WireFormatLite::CPPTYPE_STRING:
@@ -432,9 +349,7 @@ void* ExtensionSet::MutableRawRepeatedField(int number, FieldType field_type,
     }
   }
 
-  // We assume that all the RepeatedField<>* pointers have the same
-  // size and alignment within the anonymous union in Extension.
-  return extension->ptr.repeated_int32_t_value;
+  return extension->raw_ptr();
 }
 
 // Compatible version using old call signature. Does not create extensions when
@@ -442,65 +357,11 @@ void* ExtensionSet::MutableRawRepeatedField(int number, FieldType field_type,
 void* ExtensionSet::MutableRawRepeatedField(int number) {
   Extension* extension = FindOrNull(number);
   ABSL_CHECK(extension != nullptr) << "Extension not found.";
-  // We assume that all the RepeatedField<>* pointers have the same
-  // size and alignment within the anonymous union in Extension.
-  return extension->ptr.repeated_int32_t_value;
+  return extension->raw_ptr();
 }
 
 // -------------------------------------------------------------------
 // Enums
-
-int ExtensionSet::GetEnum(int number, int default_value) const {
-  const Extension* extension = FindOrNull(number);
-  if (extension == nullptr || extension->is_cleared) {
-    // Not present.  Return the default value.
-    return default_value;
-  } else {
-    ABSL_DCHECK_TYPE(*extension, OPTIONAL_FIELD, ENUM);
-    return extension->enum_value;
-  }
-}
-
-const int& ExtensionSet::GetRefEnum(int number,
-                                    const int& default_value) const {
-  const Extension* extension = FindOrNull(number);
-  if (extension == nullptr || extension->is_cleared) {
-    // Not present.  Return the default value.
-    return default_value;
-  } else {
-    ABSL_DCHECK_TYPE(*extension, OPTIONAL_FIELD, ENUM);
-    return extension->enum_value;
-  }
-}
-
-void ExtensionSet::SetEnum(int number, FieldType type, int value,
-                           const FieldDescriptor* descriptor) {
-  Extension* extension;
-  if (MaybeNewExtension(number, descriptor, &extension)) {
-    extension->type = type;
-    ABSL_DCHECK_EQ(cpp_type(extension->type), WireFormatLite::CPPTYPE_ENUM);
-    extension->is_repeated = false;
-    extension->is_pointer = false;
-  } else {
-    ABSL_DCHECK_TYPE(*extension, OPTIONAL_FIELD, ENUM);
-  }
-  extension->is_cleared = false;
-  extension->enum_value = value;
-}
-
-int ExtensionSet::GetRepeatedEnum(int number, int index) const {
-  const Extension* extension = FindOrNull(number);
-  ABSL_CHECK(extension != nullptr) << "Index out-of-bounds (field is empty).";
-  ABSL_DCHECK_TYPE(*extension, REPEATED_FIELD, ENUM);
-  return extension->ptr.repeated_enum_value->Get(index);
-}
-
-const int& ExtensionSet::GetRefRepeatedEnum(int number, int index) const {
-  const Extension* extension = FindOrNull(number);
-  ABSL_CHECK(extension != nullptr) << "Index out-of-bounds (field is empty).";
-  ABSL_DCHECK_TYPE(*extension, REPEATED_FIELD, ENUM);
-  return extension->ptr.repeated_enum_value->Get(index);
-}
 
 size_t ExtensionSet::GetMessageByteSizeLong(int number) const {
   const Extension* extension = FindOrNull(number);
@@ -527,45 +388,8 @@ uint8_t* ExtensionSet::InternalSerializeMessage(
       number, *msg, msg->GetCachedSize(), target, stream);
 }
 
-void ExtensionSet::SetRepeatedEnum(int number, int index, int value) {
-  Extension* extension = FindOrNull(number);
-  ABSL_CHECK(extension != nullptr) << "Index out-of-bounds (field is empty).";
-  ABSL_DCHECK_TYPE(*extension, REPEATED_FIELD, ENUM);
-  extension->ptr.repeated_enum_value->Set(index, value);
-}
-
-void ExtensionSet::AddEnum(int number, FieldType type, bool packed, int value,
-                           const FieldDescriptor* descriptor) {
-  Extension* extension;
-  if (MaybeNewExtension(number, descriptor, &extension)) {
-    extension->type = type;
-    ABSL_DCHECK_EQ(cpp_type(extension->type), WireFormatLite::CPPTYPE_ENUM);
-    extension->is_repeated = true;
-    extension->is_pointer = true;
-    extension->is_packed = packed;
-    extension->ptr.repeated_enum_value =
-        Arena::Create<RepeatedField<int>>(arena_);
-  } else {
-    ABSL_DCHECK_TYPE(*extension, REPEATED_FIELD, ENUM);
-    ABSL_DCHECK_EQ(extension->is_packed, packed);
-  }
-  extension->ptr.repeated_enum_value->Add(value);
-}
-
 // -------------------------------------------------------------------
 // Strings
-
-const std::string& ExtensionSet::GetString(
-    int number, const std::string& default_value) const {
-  const Extension* extension = FindOrNull(number);
-  if (extension == nullptr || extension->is_cleared) {
-    // Not present.  Return the default value.
-    return default_value;
-  } else {
-    ABSL_DCHECK_TYPE(*extension, OPTIONAL_FIELD, STRING);
-    return *extension->ptr.string_value;
-  }
-}
 
 std::string* ExtensionSet::MutableString(int number, FieldType type,
                                          const FieldDescriptor* descriptor) {
@@ -581,14 +405,6 @@ std::string* ExtensionSet::MutableString(int number, FieldType type,
   }
   extension->is_cleared = false;
   return extension->ptr.string_value;
-}
-
-const std::string& ExtensionSet::GetRepeatedString(int number,
-                                                   int index) const {
-  const Extension* extension = FindOrNull(number);
-  ABSL_CHECK(extension != nullptr) << "Index out-of-bounds (field is empty).";
-  ABSL_DCHECK_TYPE(*extension, REPEATED_FIELD, STRING);
-  return extension->ptr.repeated_string_value->Get(index);
 }
 
 std::string* ExtensionSet::MutableRepeatedString(int number, int index) {
@@ -823,7 +639,7 @@ MessageLite* ExtensionSet::MutableRepeatedMessage(int number, int index) {
 }
 
 MessageLite* ExtensionSet::AddMessage(int number, FieldType type,
-                                      const MessageLite& prototype,
+                                      const ClassData* class_data,
                                       const FieldDescriptor* descriptor) {
   Extension* extension;
   if (MaybeNewExtension(number, descriptor, &extension)) {
@@ -836,10 +652,9 @@ MessageLite* ExtensionSet::AddMessage(int number, FieldType type,
   } else {
     ABSL_DCHECK_TYPE(*extension, REPEATED_FIELD, MESSAGE);
   }
-
   return reinterpret_cast<internal::RepeatedPtrFieldBase*>(
              extension->ptr.repeated_message_value)
-      ->AddMessage(&prototype);
+      ->AddFromClassData<GenericTypeHandler<MessageLite>>(class_data);
 }
 
 // Defined in extension_set_heavy.cc.
@@ -877,7 +692,7 @@ void ExtensionSet::RemoveLast(int number) {
       extension->ptr.repeated_bool_value->RemoveLast();
       break;
     case WireFormatLite::CPPTYPE_ENUM:
-      extension->ptr.repeated_enum_value->RemoveLast();
+      extension->ptr.repeated_int32_t_value->RemoveLast();
       break;
     case WireFormatLite::CPPTYPE_STRING:
       extension->ptr.repeated_string_value->RemoveLast();
@@ -932,7 +747,7 @@ void ExtensionSet::SwapElements(int number, int index1, int index2) {
       extension->ptr.repeated_bool_value->SwapElements(index1, index2);
       break;
     case WireFormatLite::CPPTYPE_ENUM:
-      extension->ptr.repeated_enum_value->SwapElements(index1, index2);
+      extension->ptr.repeated_int32_t_value->SwapElements(index1, index2);
       break;
     case WireFormatLite::CPPTYPE_STRING:
       extension->ptr.repeated_string_value->SwapElements(index1, index2);
@@ -957,27 +772,13 @@ namespace {
 // already allocated and will not be going away.
 template <typename ItX, typename ItY>
 size_t SizeOfUnion(ItX it_dest, ItX end_dest, ItY it_source, ItY end_source) {
-  size_t result = 0;
-  while (it_dest != end_dest && it_source != end_source) {
-    if (it_dest->first < it_source->first) {
-      ++result;
-      ++it_dest;
-    } else if (it_dest->first == it_source->first) {
-      ++result;
-      ++it_dest;
-      ++it_source;
-    } else {
-      if (!it_source->second.is_cleared) {
-        ++result;
-      }
-      ++it_source;
-    }
-  }
-  result += std::distance(it_dest, end_dest);
+  size_t result = std::distance(it_dest, end_dest);
   for (; it_source != end_source; ++it_source) {
-    if (!it_source->second.is_cleared) {
-      ++result;
+    while (it_dest != end_dest && it_dest->first < it_source->first) {
+      ++it_dest;
     }
+    result += (it_dest == end_dest || it_dest->first > it_source->first) &&
+              !it_source->second.is_cleared;
   }
   return result;
 }
@@ -986,6 +787,43 @@ size_t SizeOfUnion(ItX it_dest, ItX end_dest, ItY it_source, ItY end_source) {
 void ExtensionSet::MergeFrom(const MessageLite* extendee,
                              const ExtensionSet& other) {
   Prefetch5LinesFrom1Line(&other);
+  if (ABSL_PREDICT_TRUE(IsCompletelyEmpty() && !other.is_large())) {
+    InternalMergeFromSmallToEmpty(extendee, other);
+    return;
+  }
+  InternalMergeFromSlow(extendee, other);
+}
+
+void ExtensionSet::InternalMergeFromSmallToEmpty(const MessageLite* extendee,
+                                                 const ExtensionSet& other) {
+  ABSL_DCHECK(!other.is_large());
+  // Compiler is complaining on potential side effects for `!other.is_large()`.
+  ABSL_ASSUME(static_cast<int16_t>(flat_size_) >= 0);
+  ABSL_DCHECK(IsCompletelyEmpty());
+
+  size_t count = other.NumExtensions();
+  if (count == 0) {
+    return;
+  }
+
+  InternalReserveSmallCapacityFromEmpty(count);
+  flat_size_ = static_cast<uint16_t>(count);
+  auto dst_it = map_.flat;
+  other.ForEach(
+      [extendee, this, &dst_it, &other](int number, const Extension& ext) {
+        if (ext.is_cleared) {
+          return;
+        }
+        dst_it->first = number;
+        this->InternalExtensionMergeFromIntoUninitializedExtension(
+            dst_it->second, extendee, number, ext, other.arena_);
+        ++dst_it;
+      },
+      Prefetch{});
+}
+
+void ExtensionSet::InternalMergeFromSlow(const MessageLite* extendee,
+                                         const ExtensionSet& other) {
   if (ABSL_PREDICT_TRUE(!is_large())) {
     if (ABSL_PREDICT_TRUE(!other.is_large())) {
       GrowCapacity(SizeOfUnion(flat_begin(), flat_end(), other.flat_begin(),
@@ -1003,35 +841,22 @@ void ExtensionSet::MergeFrom(const MessageLite* extendee,
       Prefetch{});
 }
 
-void ExtensionSet::InternalExtensionMergeFrom(const MessageLite* extendee,
-                                              int number,
-                                              const Extension& other_extension,
-                                              Arena* other_arena) {
-  if (other_extension.is_repeated) {
-    Extension* extension;
-    bool is_new =
-        MaybeNewExtension(number, other_extension.descriptor, &extension);
-    if (is_new) {
-      // Extension did not already exist in set.
-      extension->type = other_extension.type;
-      extension->is_packed = other_extension.is_packed;
-      extension->is_repeated = true;
-      extension->is_pointer = true;
-    } else {
-      ABSL_DCHECK_EQ(extension->type, other_extension.type);
-      ABSL_DCHECK_EQ(extension->is_packed, other_extension.is_packed);
-      ABSL_DCHECK(extension->is_repeated);
-    }
+void ExtensionSet::InternalExtensionMergeFromIntoUninitializedExtension(
+    Extension& dst_extension, const MessageLite* extendee, int number,
+    const Extension& other_extension, Arena* other_arena) {
+  // Copy and initialize all the fields.
+  // We fix up incorrect pointers later.
+  // Primitive values are copied here.
+  dst_extension = other_extension;
 
+  if (other_extension.is_repeated) {
     switch (cpp_type(other_extension.type)) {
-#define HANDLE_TYPE(UPPERCASE, LOWERCASE, REPEATED_TYPE)    \
-  case WireFormatLite::CPPTYPE_##UPPERCASE:                 \
-    if (is_new) {                                           \
-      extension->ptr.repeated_##LOWERCASE##_value =         \
-          Arena::Create<REPEATED_TYPE>(arena_);             \
-    }                                                       \
-    extension->ptr.repeated_##LOWERCASE##_value->MergeFrom( \
-        *other_extension.ptr.repeated_##LOWERCASE##_value); \
+#define HANDLE_TYPE(UPPERCASE, LOWERCASE, REPEATED_TYPE)       \
+  case WireFormatLite::CPPTYPE_##UPPERCASE:                    \
+    dst_extension.ptr.repeated_##LOWERCASE##_value =           \
+        Arena::Create<REPEATED_TYPE>(arena_);                  \
+    dst_extension.ptr.repeated_##LOWERCASE##_value->MergeFrom( \
+        *other_extension.ptr.repeated_##LOWERCASE##_value);    \
     break;
 
       HANDLE_TYPE(INT32, int32_t, RepeatedField<int32_t>);
@@ -1041,88 +866,132 @@ void ExtensionSet::InternalExtensionMergeFrom(const MessageLite* extendee,
       HANDLE_TYPE(FLOAT, float, RepeatedField<float>);
       HANDLE_TYPE(DOUBLE, double, RepeatedField<double>);
       HANDLE_TYPE(BOOL, bool, RepeatedField<bool>);
-      HANDLE_TYPE(ENUM, enum, RepeatedField<int>);
+      HANDLE_TYPE(ENUM, int32_t, RepeatedField<int>);
       HANDLE_TYPE(STRING, string, RepeatedPtrField<std::string>);
       HANDLE_TYPE(MESSAGE, message, RepeatedPtrField<MessageLite>);
 #undef HANDLE_TYPE
     }
-  } else {
-    if (!other_extension.is_cleared) {
-      switch (cpp_type(other_extension.type)) {
-#define HANDLE_TYPE(UPPERCASE, LOWERCASE, CAMELCASE)  \
-  case WireFormatLite::CPPTYPE_##UPPERCASE:           \
-    Set##CAMELCASE(number, other_extension.type,      \
-                   other_extension.LOWERCASE##_value, \
-                   other_extension.descriptor);       \
+    return;
+  }
+
+  // Non-repeated extension
+  switch (cpp_type(other_extension.type)) {
+    case WireFormatLite::CPPTYPE_INT32:
+    case WireFormatLite::CPPTYPE_INT64:
+    case WireFormatLite::CPPTYPE_UINT32:
+    case WireFormatLite::CPPTYPE_UINT64:
+    case WireFormatLite::CPPTYPE_FLOAT:
+    case WireFormatLite::CPPTYPE_DOUBLE:
+    case WireFormatLite::CPPTYPE_BOOL:
+    case WireFormatLite::CPPTYPE_ENUM:
+      break;  // Do nothing.
+    case WireFormatLite::CPPTYPE_STRING:
+      dst_extension.ptr.string_value =
+          Arena::Create<std::string>(arena_, *other_extension.ptr.string_value);
+      break;
+    case WireFormatLite::CPPTYPE_MESSAGE: {
+      if (other_extension.is_lazy) {
+        dst_extension.ptr.lazymessage_value =
+            other_extension.ptr.lazymessage_value->Clone(
+                arena_, *other_extension.ptr.lazymessage_value, other_arena);
+      } else {
+        dst_extension.ptr.message_value =
+            other_extension.ptr.message_value->New(arena_);
+        dst_extension.ptr.message_value->CheckTypeAndMergeFrom(
+            *other_extension.ptr.message_value);
+      }
+      break;
+    }
+  }
+}
+
+void ExtensionSet::InternalExtensionMergeFrom(const MessageLite* extendee,
+                                              int number,
+                                              const Extension& other_extension,
+                                              Arena* other_arena) {
+  Extension* dst_extension;
+  bool is_new =
+      MaybeNewExtension(number, other_extension.descriptor, &dst_extension);
+  if (is_new) {
+    InternalExtensionMergeFromIntoUninitializedExtension(
+        *dst_extension, extendee, number, other_extension, other_arena);
+    return;
+  }
+  if (other_extension.is_repeated) {
+    ABSL_DCHECK_EQ(dst_extension->type, other_extension.type);
+    ABSL_DCHECK_EQ(dst_extension->is_packed, other_extension.is_packed);
+    ABSL_DCHECK(dst_extension->is_repeated);
+
+    switch (cpp_type(other_extension.type)) {
+#define HANDLE_TYPE(UPPERCASE, LOWERCASE)                       \
+  case WireFormatLite::CPPTYPE_##UPPERCASE:                     \
+    dst_extension->ptr.repeated_##LOWERCASE##_value->MergeFrom( \
+        *other_extension.ptr.repeated_##LOWERCASE##_value);     \
     break;
 
-        HANDLE_TYPE(INT32, int32_t, Int32);
-        HANDLE_TYPE(INT64, int64_t, Int64);
-        HANDLE_TYPE(UINT32, uint32_t, UInt32);
-        HANDLE_TYPE(UINT64, uint64_t, UInt64);
-        HANDLE_TYPE(FLOAT, float, Float);
-        HANDLE_TYPE(DOUBLE, double, Double);
-        HANDLE_TYPE(BOOL, bool, Bool);
-        HANDLE_TYPE(ENUM, enum, Enum);
+      HANDLE_TYPE(INT32, int32_t);
+      HANDLE_TYPE(INT64, int64_t);
+      HANDLE_TYPE(UINT32, uint32_t);
+      HANDLE_TYPE(UINT64, uint64_t);
+      HANDLE_TYPE(FLOAT, float);
+      HANDLE_TYPE(DOUBLE, double);
+      HANDLE_TYPE(BOOL, bool);
+      HANDLE_TYPE(ENUM, int32_t);
+      HANDLE_TYPE(STRING, string);
+      HANDLE_TYPE(MESSAGE, message);
 #undef HANDLE_TYPE
-        case WireFormatLite::CPPTYPE_STRING:
-          SetString(number, other_extension.type,
-                    *other_extension.ptr.string_value,
-                    other_extension.descriptor);
-          break;
-        case WireFormatLite::CPPTYPE_MESSAGE: {
-          Arena* const arena = arena_;
-          Extension* extension;
-          bool is_new =
-              MaybeNewExtension(number, other_extension.descriptor, &extension);
-          if (is_new) {
-            extension->type = other_extension.type;
-            extension->is_packed = other_extension.is_packed;
-            extension->is_repeated = false;
-            extension->is_pointer = true;
-            if (other_extension.is_lazy) {
-              extension->is_lazy = true;
-              extension->ptr.lazymessage_value =
-                  other_extension.ptr.lazymessage_value->New(arena);
-              extension->ptr.lazymessage_value->MergeFrom(
-                  GetPrototypeForLazyMessage(extendee, number),
-                  *other_extension.ptr.lazymessage_value, arena, other_arena);
-            } else {
-              extension->is_lazy = false;
-              extension->ptr.message_value =
-                  other_extension.ptr.message_value->New(arena);
-              extension->ptr.message_value->CheckTypeAndMergeFrom(
-                  *other_extension.ptr.message_value);
-            }
-          } else {
-            ABSL_DCHECK_EQ(extension->type, other_extension.type);
-            ABSL_DCHECK_EQ(extension->is_packed, other_extension.is_packed);
-            ABSL_DCHECK(!extension->is_repeated);
-            if (other_extension.is_lazy) {
-              if (extension->is_lazy) {
-                extension->ptr.lazymessage_value->MergeFrom(
-                    GetPrototypeForLazyMessage(extendee, number),
-                    *other_extension.ptr.lazymessage_value, arena, other_arena);
-              } else {
-                extension->ptr.message_value->CheckTypeAndMergeFrom(
-                    other_extension.ptr.lazymessage_value->GetMessage(
-                        *extension->ptr.message_value, other_arena));
-              }
-            } else {
-              if (extension->is_lazy) {
-                extension->ptr.lazymessage_value
-                    ->MutableMessage(*other_extension.ptr.message_value, arena)
-                    ->CheckTypeAndMergeFrom(*other_extension.ptr.message_value);
-              } else {
-                extension->ptr.message_value->CheckTypeAndMergeFrom(
-                    *other_extension.ptr.message_value);
-              }
-            }
-          }
-          extension->is_cleared = false;
-          break;
+    }
+    return;
+  }
+
+  if (other_extension.is_cleared) {
+    return;
+  }
+  dst_extension->is_cleared = false;
+  switch (cpp_type(other_extension.type)) {
+#define HANDLE_TYPE(UPPERCASE, LOWERCASE)                                 \
+  case WireFormatLite::CPPTYPE_##UPPERCASE:                               \
+    dst_extension->LOWERCASE##_value = other_extension.LOWERCASE##_value; \
+    break;
+
+    HANDLE_TYPE(INT32, int32_t);
+    HANDLE_TYPE(INT64, int64_t);
+    HANDLE_TYPE(UINT32, uint32_t);
+    HANDLE_TYPE(UINT64, uint64_t);
+    HANDLE_TYPE(FLOAT, float);
+    HANDLE_TYPE(DOUBLE, double);
+    HANDLE_TYPE(BOOL, bool);
+    HANDLE_TYPE(ENUM, int32_t);
+#undef HANDLE_TYPE
+    case WireFormatLite::CPPTYPE_STRING:
+      dst_extension->ptr.string_value->assign(
+          *other_extension.ptr.string_value);
+      break;
+    case WireFormatLite::CPPTYPE_MESSAGE: {
+      ABSL_DCHECK_EQ(dst_extension->type, other_extension.type);
+      ABSL_DCHECK_EQ(dst_extension->is_packed, other_extension.is_packed);
+      ABSL_DCHECK(!dst_extension->is_repeated);
+      if (other_extension.is_lazy) {
+        if (dst_extension->is_lazy) {
+          dst_extension->ptr.lazymessage_value->MergeFrom(
+              GetPrototypeForLazyMessage(extendee, number),
+              *other_extension.ptr.lazymessage_value, arena_, other_arena);
+        } else {
+          dst_extension->ptr.message_value->CheckTypeAndMergeFrom(
+              other_extension.ptr.lazymessage_value->GetMessage(
+                  *dst_extension->ptr.message_value, other_arena));
+        }
+      } else {
+        if (dst_extension->is_lazy) {
+          dst_extension->ptr.lazymessage_value
+              ->MutableMessage(*other_extension.ptr.message_value, arena_)
+              ->CheckTypeAndMergeFrom(*other_extension.ptr.message_value);
+        } else {
+          dst_extension->ptr.message_value->CheckTypeAndMergeFrom(
+              *other_extension.ptr.message_value);
         }
       }
+      break;
     }
   }
 }
@@ -1330,6 +1199,7 @@ size_t ExtensionSet::ByteSize() const {
   return total_size;
 }
 
+
 // Defined in extension_set_heavy.cc.
 // int ExtensionSet::SpaceUsedExcludingSelf() const
 
@@ -1340,6 +1210,25 @@ bool ExtensionSet::MaybeNewExtension(int number,
   std::tie(*result, extension_is_new) = Insert(number);
   (*result)->descriptor = descriptor;
   return extension_is_new;
+}
+
+ExtensionSet::Extension& ExtensionSet::FindOrCreate(
+    int number, FieldType type, bool repeated, bool packed,
+    const FieldDescriptor* descriptor,
+    Extension& (*pointer_creator)(Extension& ext, Arena* arena)) {
+  Extension* extension;
+  if (MaybeNewExtension(number, descriptor, &extension)) {
+    extension->type = type;
+    extension->is_repeated = repeated;
+    extension->is_packed = packed;
+    extension->is_pointer = pointer_creator != nullptr;
+    if (pointer_creator != nullptr) {
+      return pointer_creator(*extension, arena_);
+    }
+  } else {
+    extension->is_cleared = false;
+  }
+  return *extension;
 }
 
 // ===================================================================
@@ -1360,7 +1249,7 @@ void ExtensionSet::Extension::Clear() {
       HANDLE_TYPE(FLOAT, float);
       HANDLE_TYPE(DOUBLE, double);
       HANDLE_TYPE(BOOL, bool);
-      HANDLE_TYPE(ENUM, enum);
+      HANDLE_TYPE(ENUM, int32_t);
       HANDLE_TYPE(STRING, string);
       HANDLE_TYPE(MESSAGE, message);
 #undef HANDLE_TYPE
@@ -1410,7 +1299,7 @@ size_t ExtensionSet::Extension::ByteSize(int number) const {
         HANDLE_TYPE(UINT64, UInt64, uint64_t);
         HANDLE_TYPE(SINT32, SInt32, int32_t);
         HANDLE_TYPE(SINT64, SInt64, int64_t);
-        HANDLE_TYPE(ENUM, Enum, enum);
+        HANDLE_TYPE(ENUM, Enum, int32_t);
 #undef HANDLE_TYPE
 
         // Stuff with fixed size.
@@ -1464,7 +1353,7 @@ size_t ExtensionSet::Extension::ByteSize(int number) const {
         HANDLE_TYPE(SINT64, SInt64, int64_t);
         HANDLE_TYPE(STRING, String, string);
         HANDLE_TYPE(BYTES, Bytes, string);
-        HANDLE_TYPE(ENUM, Enum, enum);
+        HANDLE_TYPE(ENUM, Enum, int32_t);
         HANDLE_TYPE(GROUP, Group, message);
         HANDLE_TYPE(MESSAGE, Message, message);
 #undef HANDLE_TYPE
@@ -1501,7 +1390,7 @@ size_t ExtensionSet::Extension::ByteSize(int number) const {
       HANDLE_TYPE(SINT64, SInt64, int64_t_value);
       HANDLE_TYPE(STRING, String, *ptr.string_value);
       HANDLE_TYPE(BYTES, Bytes, *ptr.string_value);
-      HANDLE_TYPE(ENUM, Enum, enum_value);
+      HANDLE_TYPE(ENUM, Enum, int32_t_value);
       HANDLE_TYPE(GROUP, Group, *ptr.message_value);
 #undef HANDLE_TYPE
       case WireFormatLite::TYPE_MESSAGE: {
@@ -1530,6 +1419,7 @@ size_t ExtensionSet::Extension::ByteSize(int number) const {
   return result;
 }
 
+
 int ExtensionSet::Extension::GetSize() const {
   ABSL_DCHECK(is_repeated);
   switch (cpp_type(type)) {
@@ -1544,7 +1434,7 @@ int ExtensionSet::Extension::GetSize() const {
     HANDLE_TYPE(FLOAT, float);
     HANDLE_TYPE(DOUBLE, double);
     HANDLE_TYPE(BOOL, bool);
-    HANDLE_TYPE(ENUM, enum);
+    HANDLE_TYPE(ENUM, int32_t);
     HANDLE_TYPE(STRING, string);
     HANDLE_TYPE(MESSAGE, message);
 #undef HANDLE_TYPE
@@ -1571,7 +1461,7 @@ void ExtensionSet::Extension::Free() {
       HANDLE_TYPE(FLOAT, float);
       HANDLE_TYPE(DOUBLE, double);
       HANDLE_TYPE(BOOL, bool);
-      HANDLE_TYPE(ENUM, enum);
+      HANDLE_TYPE(ENUM, int32_t);
       HANDLE_TYPE(STRING, string);
       HANDLE_TYPE(MESSAGE, message);
 #undef HANDLE_TYPE
@@ -1660,30 +1550,45 @@ ExtensionSet::Extension* ExtensionSet::FindOrNullInLargeMap(int key) {
       const_this->FindOrNullInLargeMap(key));
 }
 
-std::pair<ExtensionSet::Extension*, bool> ExtensionSet::Insert(int key) {
-  if (ABSL_PREDICT_FALSE(is_large())) {
-    auto maybe = map_.large->insert({key, Extension()});
-    return {&maybe.first->second, maybe.second};
-  }
-  KeyValue* end = flat_end();
-  KeyValue* it = flat_begin();
-  for (; it != end && it->first <= key; ++it) {
-    if (it->first == key) return {&it->second, false};
-  }
-  if (flat_size_ < flat_capacity_) {
-    std::copy_backward(it, end, end + 1);
-    ++flat_size_;
-    it->first = key;
-    it->second = Extension();
-    return {&it->second, true};
-  }
-  GrowCapacity(flat_size_ + 1);
-  return Insert(key);
+ABSL_ATTRIBUTE_NOINLINE
+std::pair<ExtensionSet::Extension*, bool>
+ExtensionSet::InternalInsertIntoLargeMap(int key) {
+  ABSL_DCHECK(is_large());
+  auto maybe = map_.large->insert({key, Extension()});
+  return {&maybe.first->second, maybe.second};
 }
 
-namespace {
-constexpr bool IsPowerOfTwo(size_t n) { return (n & (n - 1)) == 0; }
-}  // namespace
+std::pair<ExtensionSet::Extension*, bool> ExtensionSet::Insert(int key) {
+  if (ABSL_PREDICT_FALSE(is_large())) {
+    return InternalInsertIntoLargeMap(key);
+  }
+  uint16_t i = flat_size_;
+  KeyValue* flat = map_.flat;
+  // Iterating from the back to benefit the case where the keys are inserted in
+  // increasing order.
+  for (; i > 0; --i) {
+    int map_key = flat[i - 1].first;
+    if (map_key == key) {
+      return {&flat[i - 1].second, false};
+    }
+    if (map_key < key) {
+      break;
+    }
+  }
+  if (flat_size_ == flat_capacity_) {
+    GrowCapacity(flat_size_ + 1);
+    if (ABSL_PREDICT_FALSE(is_large())) {
+      return InternalInsertIntoLargeMap(key);
+    }
+    flat = map_.flat;  // Reload flat pointer after GrowCapacity.
+  }
+
+  std::copy_backward(flat + i, flat + flat_size_, flat + flat_size_ + 1);
+  ++flat_size_;
+  flat[i].first = key;
+  flat[i].second = Extension();
+  return {&flat[i].second, true};
+}
 
 void ExtensionSet::GrowCapacity(size_t minimum_new_capacity) {
   if (ABSL_PREDICT_FALSE(is_large())) {
@@ -1711,16 +1616,10 @@ void ExtensionSet::GrowCapacity(size_t minimum_new_capacity) {
     flat_size_ = static_cast<uint16_t>(-1);
     ABSL_DCHECK(is_large());
   } else {
-    new_map.flat = Arena::CreateArray<KeyValue>(arena, new_flat_capacity);
+    new_map.flat = AllocateFlatMap(arena, new_flat_capacity);
     std::copy(begin, end, new_map.flat);
   }
 
-  // ReturnArrayMemory is more efficient with power-of-2 bytes, and
-  // sizeof(KeyValue) is a power-of-2 on 64-bit platforms. flat_capacity_ is
-  // always a power-of-2.
-  ABSL_DCHECK(IsPowerOfTwo(sizeof(KeyValue)) || sizeof(void*) != 8)
-      << sizeof(KeyValue) << " " << sizeof(void*);
-  ABSL_DCHECK(IsPowerOfTwo(flat_capacity_));
   if (flat_capacity_ > 0) {
     if (arena == nullptr) {
       DeleteFlatMap(begin, flat_capacity_);
@@ -1732,12 +1631,15 @@ void ExtensionSet::GrowCapacity(size_t minimum_new_capacity) {
   map_ = new_map;
 }
 
-#if (__cplusplus < 201703) && \
-    (!defined(_MSC_VER) || (_MSC_VER >= 1900 && _MSC_VER < 1912))
-// static
-constexpr uint16_t ExtensionSet::kMaximumFlatCapacity;
-#endif  //  (__cplusplus < 201703) && (!defined(_MSC_VER) || (_MSC_VER >= 1900
-        //  && _MSC_VER < 1912))
+void ExtensionSet::InternalReserveSmallCapacityFromEmpty(
+    size_t minimum_new_capacity) {
+  ABSL_DCHECK(flat_capacity_ == 0);
+  ABSL_DCHECK(minimum_new_capacity <= kMaximumFlatCapacity);
+  ABSL_DCHECK(minimum_new_capacity > 0);
+  const size_t new_flat_capacity = absl::bit_ceil(minimum_new_capacity);
+  flat_capacity_ = new_flat_capacity;
+  map_.flat = AllocateFlatMap(arena_, new_flat_capacity);
+}
 
 void ExtensionSet::Erase(int key) {
   if (ABSL_PREDICT_FALSE(is_large())) {
@@ -1803,7 +1705,7 @@ uint8_t* ExtensionSet::Extension::InternalSerializeFieldWithCachedSizesToArray(
         HANDLE_TYPE(FLOAT, Float, float);
         HANDLE_TYPE(DOUBLE, Double, double);
         HANDLE_TYPE(BOOL, Bool, bool);
-        HANDLE_TYPE(ENUM, Enum, enum);
+        HANDLE_TYPE(ENUM, Enum, int32_t);
 #undef HANDLE_TYPE
 
         case WireFormatLite::TYPE_STRING:
@@ -1837,7 +1739,7 @@ uint8_t* ExtensionSet::Extension::InternalSerializeFieldWithCachedSizesToArray(
         HANDLE_TYPE(FLOAT, Float, float);
         HANDLE_TYPE(DOUBLE, Double, double);
         HANDLE_TYPE(BOOL, Bool, bool);
-        HANDLE_TYPE(ENUM, Enum, enum);
+        HANDLE_TYPE(ENUM, Enum, int32_t);
 #undef HANDLE_TYPE
 #define HANDLE_TYPE(UPPERCASE, CAMELCASE, LOWERCASE)                     \
   case WireFormatLite::TYPE_##UPPERCASE:                                 \
@@ -1887,7 +1789,7 @@ uint8_t* ExtensionSet::Extension::InternalSerializeFieldWithCachedSizesToArray(
       HANDLE_TYPE(FLOAT, Float, float_value);
       HANDLE_TYPE(DOUBLE, Double, double_value);
       HANDLE_TYPE(BOOL, Bool, bool_value);
-      HANDLE_TYPE(ENUM, Enum, enum_value);
+      HANDLE_TYPE(ENUM, Enum, int32_t_value);
 #undef HANDLE_TYPE
 #define HANDLE_TYPE(UPPERCASE, CAMELCASE, VALUE)         \
   case WireFormatLite::TYPE_##UPPERCASE:                 \
@@ -2011,7 +1913,7 @@ LazyEagerVerifyFnType FindExtensionLazyEagerVerifyFn(
   return nullptr;
 }
 
-std::atomic<ExtensionSet::LazyMessageExtension* (*)(Arena* arena)>
+std::atomic<ExtensionSet::LazyMessageExtension* (*)(Arena * arena)>
     ExtensionSet::maybe_create_lazy_extension_;
 
 }  // namespace internal

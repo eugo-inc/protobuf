@@ -199,8 +199,10 @@ PyObject* PyUpb_ObjCache_Get(const void* key) {
 // -----------------------------------------------------------------------------
 
 typedef struct {
-  PyObject_HEAD;
+  // clang-format off
+  PyObject_HEAD
   upb_Arena* arena;
+  // clang-format on
 } PyUpb_Arena;
 
 #ifdef __GLIBC__
@@ -217,7 +219,7 @@ typedef struct {
 // unpredictable
 // times.
 static void* upb_trim_allocfunc(upb_alloc* alloc, void* ptr, size_t oldsize,
-                                size_t size) {
+                                size_t size, size_t* actual_size) {
   (void)alloc;
   (void)oldsize;
   if (size == 0) {
@@ -399,7 +401,7 @@ bool PyUpb_IndexToRange(PyObject* index, Py_ssize_t size, Py_ssize_t* i,
 // Module Entry Point
 // -----------------------------------------------------------------------------
 
-__attribute__((visibility("default"))) PyMODINIT_FUNC PyInit__message(void) {
+PyMODINIT_FUNC PyInit__message(void) {
   PyObject* m = PyModule_Create(&module_def);
   if (!m) return NULL;
 

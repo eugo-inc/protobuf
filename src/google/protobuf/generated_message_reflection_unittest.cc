@@ -38,7 +38,11 @@
 #include "google/protobuf/message.h"
 #include "google/protobuf/port.h"
 #include "google/protobuf/test_util.h"
+#include "google/protobuf/text_format.h"
 #include "google/protobuf/unittest.pb.h"
+#include "google/protobuf/unittest_custom_options.pb.h"
+#include "google/protobuf/unittest_import.pb.h"
+#include "google/protobuf/unittest_import_option.pb.h"
 #include "google/protobuf/unittest_mset.pb.h"
 #include "google/protobuf/unittest_mset_wire_format.pb.h"
 #include "google/protobuf/unittest_proto3.pb.h"
@@ -193,9 +197,9 @@ TEST(GeneratedMessageReflectionTest, GetStringViewWithExtensions) {
       descriptor_file->FindExtensionByName("optional_string_piece_extension");
   google::protobuf::FieldDescriptor const* cord_ext =
       descriptor_file->FindExtensionByName("optional_cord_extension");
-  message.SetExtension(protobuf_unittest::optional_string_extension, "foo");
-  message.SetExtension(protobuf_unittest::optional_string_piece_extension, "bar");
-  message.SetExtension(protobuf_unittest::optional_cord_extension, "baz");
+  message.SetExtension(proto2_unittest::optional_string_extension, "foo");
+  message.SetExtension(proto2_unittest::optional_string_piece_extension, "bar");
+  message.SetExtension(proto2_unittest::optional_cord_extension, "baz");
   const Reflection* reflection = message.GetReflection();
   Reflection::ScratchSpace scratch;
 
@@ -247,9 +251,9 @@ TEST(GeneratedMessageReflectionTest, GetRepeatedStringViewWithExtensions) {
       descriptor_file->FindExtensionByName("repeated_string_piece_extension");
   google::protobuf::FieldDescriptor const* cord_ext =
       descriptor_file->FindExtensionByName("repeated_cord_extension");
-  message.AddExtension(protobuf_unittest::repeated_string_extension, "foo");
-  message.AddExtension(protobuf_unittest::repeated_string_piece_extension, "bar");
-  message.AddExtension(protobuf_unittest::repeated_cord_extension, "baz");
+  message.AddExtension(proto2_unittest::repeated_string_extension, "foo");
+  message.AddExtension(proto2_unittest::repeated_string_piece_extension, "bar");
+  message.AddExtension(proto2_unittest::repeated_cord_extension, "baz");
   const Reflection* reflection = message.GetReflection();
   Reflection::ScratchSpace scratch;
 
@@ -717,7 +721,7 @@ TEST(GeneratedMessageReflectionTest, RemoveLastPackedExtensions) {
 
   reflection_tester.RemoveLastRepeatedsViaReflection(&message);
 
-  TestUtil::ExpectLastRepeatedExtensionsRemoved(message);
+  TestUtil::ExpectLastRepeatedExtensionsRemovedPacked(message);
 }
 
 TEST(GeneratedMessageReflectionTest, ReleaseLast) {
@@ -735,7 +739,7 @@ TEST(GeneratedMessageReflectionTest, ReleaseLast) {
   message.Clear();
   TestUtil::SetAllFields(&message);
   ASSERT_EQ(2, message.repeated_foreign_message_size());
-  const protobuf_unittest::ForeignMessage* expected =
+  const proto2_unittest::ForeignMessage* expected =
       message.mutable_repeated_foreign_message(1);
   (void)expected;  // unused in somce configurations
   std::unique_ptr<Message> released(message.GetReflection()->ReleaseLast(
@@ -765,7 +769,7 @@ TEST(GeneratedMessageReflectionTest, ReleaseLastExtensions) {
   TestUtil::SetAllExtensions(&message);
   ASSERT_EQ(
       2, message.ExtensionSize(unittest::repeated_foreign_message_extension));
-  const protobuf_unittest::ForeignMessage* expected =
+  const proto2_unittest::ForeignMessage* expected =
       message.MutableExtension(unittest::repeated_foreign_message_extension, 1);
   std::unique_ptr<Message> released(message.GetReflection()->ReleaseLast(
       &message, descriptor->file()->FindExtensionByName(
@@ -1432,8 +1436,8 @@ TEST(GeneratedMessageReflectionTest, UsageErrors) {
                            descriptor->FindFieldByName("optional_int64")),
       "Protocol Buffer reflection usage error:\n"
       "  Method      : google::protobuf::Reflection::GetInt32\n"
-      "  Message type: protobuf_unittest\\.TestAllTypes\n"
-      "  Field       : protobuf_unittest\\.TestAllTypes\\.optional_int64\n"
+      "  Message type: proto2_unittest\\.TestAllTypes\n"
+      "  Field       : proto2_unittest\\.TestAllTypes\\.optional_int64\n"
       "  Problem     : Field is not the right type for this message:\n"
       "    Expected  : CPPTYPE_INT32\n"
       "    Field type: CPPTYPE_INT64");
@@ -1441,8 +1445,8 @@ TEST(GeneratedMessageReflectionTest, UsageErrors) {
                    message, descriptor->FindFieldByName("repeated_int32")),
                "Protocol Buffer reflection usage error:\n"
                "  Method      : google::protobuf::Reflection::GetInt32\n"
-               "  Message type: protobuf_unittest.TestAllTypes\n"
-               "  Field       : protobuf_unittest.TestAllTypes.repeated_int32\n"
+               "  Message type: proto2_unittest.TestAllTypes\n"
+               "  Field       : proto2_unittest.TestAllTypes.repeated_int32\n"
                "  Problem     : Field is repeated; the method requires a "
                "singular field.");
 #ifndef NDEBUG
@@ -1451,9 +1455,9 @@ TEST(GeneratedMessageReflectionTest, UsageErrors) {
                            descriptor->FindFieldByName("optional_int32")),
       "Protocol Buffer reflection usage error:\n"
       "  Method       : google::protobuf::Reflection::GetInt32\n"
-      "  Expected type: protobuf_unittest.TestAllTypes\n"
-      "  Actual type  : protobuf_unittest.ForeignMessage\n"
-      "  Field        : protobuf_unittest.TestAllTypes.optional_int32\n"
+      "  Expected type: proto2_unittest.TestAllTypes\n"
+      "  Actual type  : proto2_unittest.ForeignMessage\n"
+      "  Field        : proto2_unittest.TestAllTypes.optional_int32\n"
       "  Problem      : Message is not the right object for reflection");
 #endif
   EXPECT_DEATH(
@@ -1462,8 +1466,8 @@ TEST(GeneratedMessageReflectionTest, UsageErrors) {
           unittest::ForeignMessage::descriptor()->FindFieldByName("c")),
       "Protocol Buffer reflection usage error:\n"
       "  Method      : google::protobuf::Reflection::GetInt32\n"
-      "  Message type: protobuf_unittest.TestAllTypes\n"
-      "  Field       : protobuf_unittest.ForeignMessage.c\n"
+      "  Message type: proto2_unittest.TestAllTypes\n"
+      "  Field       : proto2_unittest.ForeignMessage.c\n"
       "  Problem     : Field does not match message type.");
   EXPECT_DEATH(
       reflection->HasField(
@@ -1471,8 +1475,8 @@ TEST(GeneratedMessageReflectionTest, UsageErrors) {
           unittest::ForeignMessage::descriptor()->FindFieldByName("c")),
       "Protocol Buffer reflection usage error:\n"
       "  Method      : google::protobuf::Reflection::HasField\n"
-      "  Message type: protobuf_unittest.TestAllTypes\n"
-      "  Field       : protobuf_unittest.ForeignMessage.c\n"
+      "  Message type: proto2_unittest.TestAllTypes\n"
+      "  Field       : proto2_unittest.ForeignMessage.c\n"
       "  Problem     : Field does not match message type.");
 }
 
@@ -1805,6 +1809,39 @@ TEST(GeneratedMessageReflection, SwapImplicitPresenceShouldWork) {
   rhs.mutable_child()->set_optional_int32(-1);
   lhs.GetReflection()->Swap(&lhs, &rhs);
   EXPECT_EQ(lhs.child().optional_int32(), -1);
+}
+
+TEST(GeneratedMessageReflection, UnvalidatedStringsAreDowngradedToBytes) {
+  proto2_unittest::TestChildExtension parsed_msg;
+  google::protobuf::TextFormat::ParseFromString(
+      R"pb(
+        optional_extension <
+          [proto2_unittest.repeated_string_extension]: "foo"
+        >
+      )pb",
+      &parsed_msg);
+  proto2_unittest::TestChildExtension msg;
+  msg.mutable_optional_extension()->AddExtension(
+      proto2_unittest::repeated_string_extension, "bar");
+  parsed_msg.mutable_optional_extension()->Swap(
+      msg.mutable_optional_extension());
+}
+
+TEST(GeneratedMessageReflection, ImportOption) {
+  proto2_unittest_import_option::TestMessage message;
+  google::protobuf::FileDescriptor const* file_descriptor =
+      message.GetDescriptor()->file();
+  google::protobuf::Descriptor const* message_descriptor = message.GetDescriptor();
+  google::protobuf::FieldDescriptor const* field_descriptor =
+      message_descriptor->FindFieldByName("field1");
+
+  EXPECT_EQ(
+      1, file_descriptor->options().GetExtension(proto2_unittest::file_opt1));
+  EXPECT_EQ(2, message_descriptor->options().GetExtension(
+                   proto2_unittest::message_opt1));
+  EXPECT_EQ(
+      3, field_descriptor->options().GetExtension(proto2_unittest::field_opt1));
+
 }
 
 }  // namespace

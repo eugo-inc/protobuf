@@ -31,11 +31,6 @@ namespace compiler {
 namespace java {
 
 namespace {
-
-const char* DefaultPackage(Options options) {
-  return options.opensource_runtime ? "" : "com.google.protos";
-}
-
 bool IsReservedName(absl::string_view name) {
   static const auto& kReservedNames =
       *new absl::flat_hash_set<absl::string_view>({
@@ -86,9 +81,9 @@ std::string FieldName(const FieldDescriptor* field) {
   // of the group type.  In Java, though, we would like to retain the original
   // capitalization of the type name.
   if (internal::cpp::IsGroupLike(*field)) {
-    field_name = field->message_type()->name();
+    field_name = std::string(field->message_type()->name());
   } else {
-    field_name = field->name();
+    field_name = std::string(field->name());
   }
   if (IsForbidden(field_name)) {
     // Append a trailing "#" to indicate that the name should be decorated to
@@ -122,19 +117,7 @@ std::string ClassName(const FileDescriptor* descriptor) {
 
 std::string FileJavaPackage(const FileDescriptor* file, bool immutable,
                             Options options) {
-  std::string result;
-
-  if (file->options().has_java_package()) {
-    result = file->options().java_package();
-  } else {
-    result = DefaultPackage(options);
-    if (!file->package().empty()) {
-      if (!result.empty()) result += '.';
-      result += file->package();
-    }
-  }
-
-  return result;
+  return ClassNameResolver(options).GetFileJavaPackage(file, immutable);
 }
 
 std::string FileJavaPackage(const FileDescriptor* file, Options options) {
@@ -175,6 +158,23 @@ std::string UnderscoresToCamelCaseCheckReserved(const FieldDescriptor* field) {
     absl::StrAppend(&name, "_");
   }
   return name;
+}
+
+PROTOC_EXPORT std::string KotlinFactoryName(const Descriptor* descriptor) {
+  ClassNameResolver name_resolver;
+  return name_resolver.GetKotlinFactoryName(descriptor);
+}
+
+PROTOC_EXPORT std::string FullyQualifiedKotlinFactoryName(
+    const Descriptor* descriptor) {
+  ClassNameResolver name_resolver;
+  return name_resolver.GetFullyQualifiedKotlinFactoryName(descriptor);
+}
+
+PROTOC_EXPORT std::string KotlinExtensionsClassName(
+    const Descriptor* descriptor) {
+  ClassNameResolver name_resolver;
+  return name_resolver.GetKotlinExtensionsClassName(descriptor);
 }
 
 

@@ -7,12 +7,11 @@
 
 #include "google/protobuf/json/internal/parser.h"
 
-#include <cfloat>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <limits>
-#include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -30,7 +29,6 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "absl/types/span.h"
 #include "google/protobuf/descriptor.h"
 #include "google/protobuf/dynamic_message.h"
@@ -40,6 +38,7 @@
 #include "google/protobuf/json/internal/descriptor_traits.h"
 #include "google/protobuf/json/internal/lexer.h"
 #include "google/protobuf/json/internal/parser_traits.h"
+#include "google/protobuf/json/internal/zero_copy_buffered_stream.h"
 #include "google/protobuf/message.h"
 #include "google/protobuf/util/type_resolver.h"
 #include "google/protobuf/stubs/status_macros.h"
@@ -170,6 +169,28 @@ absl::StatusOr<absl::Span<char>> DecodeBase64InPlace(absl::Span<char> base64) {
 }
 
 template <typename T>
+static absl::Status ParseFloatStringAsInt(
+    const LocationWith<MaybeOwnedString>& x, T* out, double lo, double hi) {
+  double d;
+  if (!absl::SimpleAtod(x.value.AsView(), &d) || !std::isfinite(d)) {
+    return x.loc.Invalid(
+        absl::StrFormat("invalid number: '%s'", x.value.AsView()));
+  }
+
+  // Conversion overflow here would be UB.
+  if (lo > d || d > hi) {
+    return x.loc.Invalid("JSON number out of range for int");
+  }
+  *out = static_cast<T>(d);
+  if (d - static_cast<double>(*out) != 0) {
+    return x.loc.Invalid(
+        "expected integer, but JSON number had fractional part");
+  }
+
+  return absl::OkStatus();
+}
+
+template <typename T>
 absl::StatusOr<LocationWith<T>> ParseIntInner(JsonLexer& lex, double lo,
                                               double hi) {
   absl::StatusOr<JsonLexer::Kind> kind = lex.PeekKind();
@@ -185,26 +206,15 @@ absl::StatusOr<LocationWith<T>> ParseIntInner(JsonLexer& lex, double lo,
         break;
       }
 
-      double d;
-      if (!absl::SimpleAtod(x->value.AsView(), &d) || !std::isfinite(d)) {
-        return x->loc.Invalid(
-            absl::StrFormat("invalid number: '%s'", x->value.AsView()));
-      }
-
-      // Conversion overflow here would be UB.
-      if (lo > d || d > hi) {
-        return lex.Invalid("JSON number out of range for int");
-      }
-      n.value = static_cast<T>(d);
-      if (d - static_cast<double>(n.value) != 0) {
-        return lex.Invalid(
-            "expected integer, but JSON number had fractional part");
-      }
+      RETURN_IF_ERROR(ParseFloatStringAsInt<T>(*x, &n.value, lo, hi));
       break;
     }
     case JsonLexer::kStr: {
       absl::StatusOr<LocationWith<MaybeOwnedString>> str = lex.ParseUtf8();
       RETURN_IF_ERROR(str.status());
+
+      n.loc = str->loc;
+
       // SimpleAtoi will ignore leading and trailing whitespace, so we need
       // to check for it ourselves.
       for (char c : str->value.AsView()) {
@@ -212,10 +222,11 @@ absl::StatusOr<LocationWith<T>> ParseIntInner(JsonLexer& lex, double lo,
           return lex.Invalid("non-number characters in quoted number");
         }
       }
-      if (!absl::SimpleAtoi(str->value.AsView(), &n.value)) {
-        return str->loc.Invalid("non-number characters in quoted number");
+      if (absl::SimpleAtoi(str->value.AsView(), &n.value)) {
+        break;
       }
-      n.loc = str->loc;
+
+      RETURN_IF_ERROR(ParseFloatStringAsInt<T>(*str, &n.value, lo, hi));
       break;
     }
     default:
@@ -322,20 +333,20 @@ absl::StatusOr<std::string> ParseStrOrBytes(JsonLexer& lex,
 }
 
 template <typename Traits>
-absl::StatusOr<absl::optional<int32_t>> ParseEnumFromStr(JsonLexer& lex,
-                                                         MaybeOwnedString& str,
-                                                         Field<Traits> field) {
+absl::StatusOr<std::optional<int32_t>> ParseEnumFromStr(
+    const json_internal::ParseOptions& options, MaybeOwnedString& str,
+    Field<Traits> field) {
   absl::StatusOr<int32_t> value = Traits::EnumNumberByName(
-      field, str.AsView(), lex.options().case_insensitive_enum_parsing);
+      field, str.AsView(), options.case_insensitive_enum_parsing);
   if (value.ok()) {
-    return absl::optional<int32_t>(*value);
+    return std::optional<int32_t>(*value);
   }
 
   int32_t i;
   if (absl::SimpleAtoi(str.AsView(), &i)) {
-    return absl::optional<int32_t>(i);
-  } else if (lex.options().ignore_unknown_fields) {
-    return {absl::nullopt};
+    return std::optional<int32_t>(i);
+  } else if (options.ignore_unknown_fields) {
+    return {std::nullopt};
   }
 
   return value.status();
@@ -344,8 +355,8 @@ absl::StatusOr<absl::optional<int32_t>> ParseEnumFromStr(JsonLexer& lex,
 // Parses an enum; can return nullopt if a quoted enumerator that we don't
 // know about is received and `ignore_unknown_fields` is set.
 template <typename Traits>
-absl::StatusOr<absl::optional<int32_t>> ParseEnum(JsonLexer& lex,
-                                                  Field<Traits> field) {
+absl::StatusOr<std::optional<int32_t>> ParseEnum(JsonLexer& lex,
+                                                 Field<Traits> field) {
   absl::StatusOr<JsonLexer::Kind> kind = lex.PeekKind();
   RETURN_IF_ERROR(kind.status());
 
@@ -355,10 +366,10 @@ absl::StatusOr<absl::optional<int32_t>> ParseEnum(JsonLexer& lex,
       absl::StatusOr<LocationWith<MaybeOwnedString>> str = lex.ParseUtf8();
       RETURN_IF_ERROR(str.status());
 
-      auto e = ParseEnumFromStr<Traits>(lex, str->value, field);
+      auto e = ParseEnumFromStr<Traits>(lex.options(), str->value, field);
       RETURN_IF_ERROR(e.status());
       if (!e->has_value()) {
-        return {absl::nullopt};
+        return {std::nullopt};
       }
       n = **e;
       break;
@@ -502,7 +513,7 @@ absl::Status ParseSingular(JsonLexer& lex, Field<Traits> field,
       break;
     }
     case FieldDescriptor::TYPE_ENUM: {
-      absl::StatusOr<absl::optional<int32_t>> x = ParseEnum<Traits>(lex, field);
+      absl::StatusOr<std::optional<int32_t>> x = ParseEnum<Traits>(lex, field);
       RETURN_IF_ERROR(x.status());
 
       if (x->has_value() || Traits::IsImplicitPresence(field)) {
@@ -577,6 +588,72 @@ absl::Status EmitNull(JsonLexer& lex, Field<Traits> field, Msg<Traits>& msg) {
   return absl::OkStatus();
 }
 
+// Parses map key from already consumed string 'key' into the key field of the
+// map entry message 'entry' of type 'type'.
+template <typename Traits>
+absl::Status ParseMapKey(const Desc<Traits>& type, Msg<Traits>& entry,
+                         LocationWith<MaybeOwnedString>& key) {
+  auto key_field = Traits::KeyField(type);
+  switch (Traits::FieldType(key_field)) {
+    case FieldDescriptor::TYPE_INT64:
+    case FieldDescriptor::TYPE_SINT64:
+    case FieldDescriptor::TYPE_SFIXED64: {
+      int64_t n;
+      if (!absl::SimpleAtoi(key.value.AsView(), &n)) {
+        return key.loc.Invalid("non-number characters in quoted number");
+      }
+      Traits::SetInt64(key_field, entry, n);
+      break;
+    }
+    case FieldDescriptor::TYPE_UINT64:
+    case FieldDescriptor::TYPE_FIXED64: {
+      uint64_t n;
+      if (!absl::SimpleAtoi(key.value.AsView(), &n)) {
+        return key.loc.Invalid("non-number characters in quoted number");
+      }
+      Traits::SetUInt64(key_field, entry, n);
+      break;
+    }
+    case FieldDescriptor::TYPE_INT32:
+    case FieldDescriptor::TYPE_SINT32:
+    case FieldDescriptor::TYPE_SFIXED32: {
+      int32_t n;
+      if (!absl::SimpleAtoi(key.value.AsView(), &n)) {
+        return key.loc.Invalid("non-number characters in quoted number");
+      }
+      Traits::SetInt32(key_field, entry, n);
+      break;
+    }
+    case FieldDescriptor::TYPE_UINT32:
+    case FieldDescriptor::TYPE_FIXED32: {
+      uint32_t n;
+      if (!absl::SimpleAtoi(key.value.AsView(), &n)) {
+        return key.loc.Invalid("non-number characters in quoted number");
+      }
+      Traits::SetUInt32(key_field, entry, n);
+      break;
+    }
+    case FieldDescriptor::TYPE_BOOL: {
+      if (key.value == "true") {
+        Traits::SetBool(key_field, entry, true);
+      } else if (key.value == "false") {
+        Traits::SetBool(key_field, entry, false);
+      } else {
+        return key.loc.Invalid(absl::StrFormat("expected bool string, got '%s'",
+                                               key.value.AsView()));
+      }
+      break;
+    }
+    case FieldDescriptor::TYPE_STRING: {
+      Traits::SetString(key_field, entry, std::move(key.value.ToString()));
+      break;
+    }
+    default:
+      return key.loc.Invalid("unsupported map key type");
+  }
+  return absl::OkStatus();
+}
+
 template <typename Traits>
 absl::Status ParseArray(JsonLexer& lex, Field<Traits> field, Msg<Traits>& msg) {
   if (lex.Peek(JsonLexer::kNull)) {
@@ -625,6 +702,71 @@ absl::Status ParseArray(JsonLexer& lex, Field<Traits> field, Msg<Traits>& msg) {
   });
 }
 
+// Parses one map entry for 'map_field' of type map<*, enum> in 'parent_msg'
+// with already consumed 'key'.
+// The implementation is careful not to invoke Traits::NewMsg (which emits a new
+// message) if the enum value is unknown but we can recover from it.
+// This is tested by ParseMapWithEnumValuesProto{2,3}WithUnknownFields tests in
+// kReflective codec mode.
+template <typename Traits>
+absl::Status ParseMapOfEnumsEntry(JsonLexer& lex, Field<Traits> map_field,
+                                  Msg<Traits>& parent_msg,
+                                  LocationWith<MaybeOwnedString>& key) {
+  // Parse the enum value from string, advancing the lexer.
+  std::optional<int32_t> enum_value;
+  RETURN_IF_ERROR(Traits::WithFieldType(
+      map_field, [&lex, &enum_value](const Desc<Traits>& map_entry_desc) {
+        ASSIGN_OR_RETURN(
+            enum_value,
+            ParseEnum<Traits>(lex, Traits::ValueField(map_entry_desc)));
+        return absl::OkStatus();
+      }));
+
+  if (enum_value.has_value()) {
+    return Traits::NewMsg(
+        map_field, parent_msg,
+        [&](const Desc<Traits>& type, Msg<Traits>& entry) -> absl::Status {
+          RETURN_IF_ERROR(ParseMapKey<Traits>(type, entry, key));
+          Traits::SetEnum(Traits::ValueField(type), entry, *enum_value);
+          return absl::OkStatus();
+        });
+  } else {
+    // If we don't have enum value here, it means that it was OK to ignore it
+    // due to ignore_unknown_fields flag, otherwise ParseEnum call would fail
+    // above with "unknown enum value: " invalid argument error.
+    ABSL_DCHECK(lex.options().ignore_unknown_fields);
+    return absl::OkStatus();
+  }
+}
+
+// Parses one map entry for 'map_field' in 'parent_msg' with already consumed
+// 'key'.
+template <typename Traits>
+absl::Status ParseMapEntry(JsonLexer& lex, Field<Traits> map_field,
+                           Msg<Traits>& parent_msg,
+                           LocationWith<MaybeOwnedString>& key) {
+  bool is_map_of_enums = false;
+  RETURN_IF_ERROR(Traits::WithFieldType(
+      map_field, [&is_map_of_enums](const Desc<Traits>& desc) {
+        is_map_of_enums = Traits::FieldType(Traits::ValueField(desc)) ==
+                          FieldDescriptor::TYPE_ENUM;
+        return absl::OkStatus();
+      }));
+
+  // Special case for map<*, enum> due to handling of unknown enum values.
+  // See comments above ParseMapOfEnumsEntry for details.
+  if (is_map_of_enums) {
+    return ParseMapOfEnumsEntry<Traits>(lex, map_field, parent_msg, key);
+  }
+
+  return Traits::NewMsg(
+      map_field, parent_msg,
+      [&](const Desc<Traits>& type, Msg<Traits>& entry) -> absl::Status {
+        RETURN_IF_ERROR(ParseMapKey<Traits>(type, entry, key));
+        return ParseSingular<Traits>(lex, Traits::ValueField(type), entry);
+      });
+}
+
 template <typename Traits>
 absl::Status ParseMap(JsonLexer& lex, Field<Traits> field, Msg<Traits>& msg) {
   if (lex.Peek(JsonLexer::kNull)) {
@@ -641,80 +783,11 @@ absl::Status ParseMap(JsonLexer& lex, Field<Traits> field, Msg<Traits>& msg) {
               "got unexpectedly-repeated repeated map key: '%s'",
               key.value.AsView()));
         }
-        return Traits::NewMsg(
-            field, msg,
-            [&](const Desc<Traits>& type, Msg<Traits>& entry) -> absl::Status {
-              auto key_field = Traits::KeyField(type);
-              switch (Traits::FieldType(key_field)) {
-                case FieldDescriptor::TYPE_INT64:
-                case FieldDescriptor::TYPE_SINT64:
-                case FieldDescriptor::TYPE_SFIXED64: {
-                  int64_t n;
-                  if (!absl::SimpleAtoi(key.value.AsView(), &n)) {
-                    return key.loc.Invalid(
-                        "non-number characters in quoted number");
-                  }
-                  Traits::SetInt64(key_field, entry, n);
-                  break;
-                }
-                case FieldDescriptor::TYPE_UINT64:
-                case FieldDescriptor::TYPE_FIXED64: {
-                  uint64_t n;
-                  if (!absl::SimpleAtoi(key.value.AsView(), &n)) {
-                    return key.loc.Invalid(
-                        "non-number characters in quoted number");
-                  }
-                  Traits::SetUInt64(key_field, entry, n);
-                  break;
-                }
-                case FieldDescriptor::TYPE_INT32:
-                case FieldDescriptor::TYPE_SINT32:
-                case FieldDescriptor::TYPE_SFIXED32: {
-                  int32_t n;
-                  if (!absl::SimpleAtoi(key.value.AsView(), &n)) {
-                    return key.loc.Invalid(
-                        "non-number characters in quoted number");
-                  }
-                  Traits::SetInt32(key_field, entry, n);
-                  break;
-                }
-                case FieldDescriptor::TYPE_UINT32:
-                case FieldDescriptor::TYPE_FIXED32: {
-                  uint32_t n;
-                  if (!absl::SimpleAtoi(key.value.AsView(), &n)) {
-                    return key.loc.Invalid(
-                        "non-number characters in quoted number");
-                  }
-                  Traits::SetUInt32(key_field, entry, n);
-                  break;
-                }
-                case FieldDescriptor::TYPE_BOOL: {
-                  if (key.value == "true") {
-                    Traits::SetBool(key_field, entry, true);
-                  } else if (key.value == "false") {
-                    Traits::SetBool(key_field, entry, false);
-                  } else {
-                    return key.loc.Invalid(absl::StrFormat(
-                        "expected bool string, got '%s'", key.value.AsView()));
-                  }
-                  break;
-                }
-                case FieldDescriptor::TYPE_STRING: {
-                  Traits::SetString(key_field, entry,
-                                    std::move(key.value.ToString()));
-                  break;
-                }
-                default:
-                  return lex.Invalid("unsupported map key type");
-              }
-
-              return ParseSingular<Traits>(lex, Traits::ValueField(type),
-                                           entry);
-            });
+        return ParseMapEntry<Traits>(lex, field, msg, key);
       });
 }
 
-absl::optional<uint32_t> TakeTimeDigitsWithSuffixAndAdvance(
+std::optional<uint32_t> TakeTimeDigitsWithSuffixAndAdvance(
     absl::string_view& data, int max_digits, absl::string_view end) {
   ABSL_DCHECK_LE(max_digits, 9);
 
@@ -722,7 +795,7 @@ absl::optional<uint32_t> TakeTimeDigitsWithSuffixAndAdvance(
   int limit = max_digits;
   while (!data.empty()) {
     if (limit-- < 0) {
-      return absl::nullopt;
+      return std::nullopt;
     }
     uint32_t digit = data[0] - '0';
     if (digit >= 10) {
@@ -734,14 +807,14 @@ absl::optional<uint32_t> TakeTimeDigitsWithSuffixAndAdvance(
     data = data.substr(1);
   }
   if (!absl::StartsWith(data, end)) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   data = data.substr(end.size());
   return val;
 }
 
-absl::optional<int32_t> TakeNanosAndAdvance(absl::string_view& data) {
+std::optional<int32_t> TakeNanosAndAdvance(absl::string_view& data) {
   int32_t frac_secs = 0;
   size_t frac_digits = 0;
   if (absl::StartsWith(data, ".")) {
@@ -754,7 +827,7 @@ absl::optional<int32_t> TakeNanosAndAdvance(absl::string_view& data) {
     auto digits = data.substr(1, frac_digits);
     if (frac_digits == 0 || frac_digits > 9 ||
         !absl::SimpleAtoi(digits, &frac_secs)) {
-      return absl::nullopt;
+      return std::nullopt;
     }
     data = data.substr(frac_digits + 1);
   }
@@ -972,7 +1045,7 @@ absl::Status ParseAny(JsonLexer& lex, const Desc<Traits>& desc,
 
   // Search for @type, buffering the entire object along the way so we can
   // reparse it.
-  absl::optional<MaybeOwnedString> type_url;
+  std::optional<MaybeOwnedString> type_url;
   RETURN_IF_ERROR(lex.VisitObject(
       [&](const LocationWith<MaybeOwnedString>& key) -> absl::Status {
         if (key.value == "@type") {
@@ -1149,7 +1222,7 @@ absl::Status ParseListValue(JsonLexer& lex, const Desc<Traits>& desc,
 template <typename Traits>
 absl::Status ParseField(JsonLexer& lex, const Desc<Traits>& desc,
                         absl::string_view name, Msg<Traits>& msg) {
-  absl::optional<Field<Traits>> field;
+  std::optional<Field<Traits>> field;
   if (absl::StartsWith(name, "[") && absl::EndsWith(name, "]")) {
     absl::string_view extn_name = name.substr(1, name.size() - 2);
     field = Traits::ExtensionByName(desc, extn_name);
@@ -1309,8 +1382,8 @@ absl::Status JsonToBinaryStream(google::protobuf::util::TypeResolver* resolver,
   // input and output streams.
   std::string copy;
   std::string out;
-  absl::optional<io::ArrayInputStream> tee_input;
-  absl::optional<io::StringOutputStream> tee_output;
+  std::optional<io::ArrayInputStream> tee_input;
+  std::optional<io::StringOutputStream> tee_output;
   if (PROTOBUF_DEBUG) {
     const void* data;
     int len;

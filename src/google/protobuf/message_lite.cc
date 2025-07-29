@@ -17,12 +17,11 @@
 #include <cstdint>
 #include <cstring>
 #include <istream>
+#include <optional>
 #include <ostream>
 #include <string>
-#include <typeinfo>
 #include <utility>
 
-#include "absl/base/config.h"
 #include "absl/base/optimization.h"
 #include "absl/log/absl_check.h"
 #include "absl/log/absl_log.h"
@@ -31,7 +30,6 @@
 #include "absl/strings/internal/resize_uninitialized.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "absl/types/span.h"
 #include "google/protobuf/arena.h"
 #include "google/protobuf/generated_message_tctable_impl.h"
@@ -50,6 +48,13 @@
 namespace google {
 namespace protobuf {
 
+MessageLite* MessageLite::CopyConstruct(Arena* arena, const MessageLite& from) {
+  auto* data = from.GetClassData();
+  auto* res = data->New(arena);
+  data->merge_to_from(*res, from);
+  return res;
+}
+
 void MessageLite::DestroyInstance() {
 #if defined(PROTOBUF_CUSTOM_VTABLE)
   _class_data_->destroy_message(*this);
@@ -67,6 +72,10 @@ void MessageLite::DeleteInstance() {
   internal::SizedDelete(ptr, size);
 }
 
+void MessageLite::VerifyHasBitConsistency() const {
+  internal::TcParser::VerifyHasBitConsistency(this, GetTcParseTable());
+}
+
 void MessageLite::CheckTypeAndMergeFrom(const MessageLite& other) {
   auto* data = GetClassData();
   auto* other_data = other.GetClassData();
@@ -74,6 +83,16 @@ void MessageLite::CheckTypeAndMergeFrom(const MessageLite& other) {
   ABSL_CHECK_EQ(data, other_data)
       << "Invalid call to CheckTypeAndMergeFrom between types " << GetTypeName()
       << " and " << other.GetTypeName();
+  data->merge_to_from(*this, other);
+}
+
+void MessageLite::MergeFromWithClassData(const MessageLite& other,
+                                         const internal::ClassData* data) {
+  ABSL_DCHECK(data != nullptr);
+  ABSL_DCHECK(GetClassData() == data && other.GetClassData() == data)
+      << "Invalid call to " << __func__ << ": this=" << GetTypeName()
+      << " other=" << other.GetTypeName()
+      << " data=" << data->prototype->GetTypeName();
   data->merge_to_from(*this, other);
 }
 
@@ -96,8 +115,8 @@ const char* MessageLite::_InternalParse(const char* ptr,
   return internal::TcParser::ParseLoop(this, ptr, ctx, GetTcParseTable());
 }
 
-internal::GetTypeNameReturnType MessageLite::GetTypeName() const {
-  return internal::GetTypeNameReturnType(TypeId::Get(*this).name());
+absl::string_view MessageLite::GetTypeName() const {
+  return TypeId::Get(*this).name();
 }
 
 absl::string_view TypeId::name() const {
@@ -182,9 +201,9 @@ inline absl::string_view as_string_view(const void* data, int size) {
 }
 
 // Returns true if all required fields are present / have values.
-inline bool CheckFieldPresence(const internal::ParseContext& ctx,
-                               const MessageLite& msg,
-                               MessageLite::ParseFlags parse_flags) {
+inline bool CheckFieldPresenceImpl(const internal::ParseContext& ctx,
+                                   const MessageLite& msg,
+                                   MessageLite::ParseFlags parse_flags) {
   (void)ctx;  // Parameter is used by Google-internal code.
   if (ABSL_PREDICT_FALSE((parse_flags & MessageLite::kMergePartial) != 0)) {
     return true;
@@ -193,6 +212,13 @@ inline bool CheckFieldPresence(const internal::ParseContext& ctx,
 }
 
 }  // namespace
+
+// Returns true if all required fields are present / have values.
+bool MessageLite::CheckFieldPresence(const internal::ParseContext& ctx,
+                                     const MessageLite& msg,
+                                     MessageLite::ParseFlags parse_flags) {
+  return CheckFieldPresenceImpl(ctx, msg, parse_flags);
+}
 
 void MessageLite::LogInitializationErrorMessage() const {
   ABSL_LOG(ERROR) << InitializationErrorMessage("parse", *this);
@@ -221,7 +247,7 @@ bool MergeFromImpl(absl::string_view input, MessageLite* msg,
   ptr = internal::TcParser::ParseLoop(msg, ptr, &ctx, tc_table);
   // ctx has an explicit limit set (length of string_view).
   if (ABSL_PREDICT_TRUE(ptr && ctx.EndedAtLimit())) {
-    return CheckFieldPresence(ctx, *msg, parse_flags);
+    return CheckFieldPresenceImpl(ctx, *msg, parse_flags);
   }
   return false;
 }
@@ -236,7 +262,7 @@ bool MergeFromImpl(io::ZeroCopyInputStream* input, MessageLite* msg,
   ptr = internal::TcParser::ParseLoop(msg, ptr, &ctx, tc_table);
   // ctx has no explicit limit (hence we end on end of stream)
   if (ABSL_PREDICT_TRUE(ptr && ctx.EndedAtEndOfStream())) {
-    return CheckFieldPresence(ctx, *msg, parse_flags);
+    return CheckFieldPresenceImpl(ctx, *msg, parse_flags);
   }
   return false;
 }
@@ -252,7 +278,7 @@ bool MergeFromImpl(BoundedZCIS input, MessageLite* msg,
   if (ABSL_PREDICT_FALSE(!ptr)) return false;
   ctx.BackUp(ptr);
   if (ABSL_PREDICT_TRUE(ctx.EndedAtLimit())) {
-    return CheckFieldPresence(ctx, *msg, parse_flags);
+    return CheckFieldPresenceImpl(ctx, *msg, parse_flags);
   }
   return false;
 }
@@ -330,7 +356,7 @@ bool MessageLite::MergeFromImpl(io::CodedInputStream* input,
   } else {
     input->SetConsumed();
   }
-  return CheckFieldPresence(ctx, *this, parse_flags);
+  return CheckFieldPresenceImpl(ctx, *this, parse_flags);
 }
 
 bool MessageLite::MergePartialFromCodedStream(io::CodedInputStream* input) {
@@ -429,7 +455,7 @@ struct SourceWrapper<absl::Cord> {
   template <bool alias>
   bool MergeInto(MessageLite* msg, const internal::TcParseTableBase* tc_table,
                  MessageLite::ParseFlags parse_flags) const {
-    absl::optional<absl::string_view> flat = cord->TryFlat();
+    auto flat = cord->TryFlat();
     if (flat && flat->size() <= ParseContext::kMaxCordBytesToCopy) {
       return MergeFromImpl<alias>(*flat, msg, tc_table, parse_flags);
     } else {
@@ -443,20 +469,20 @@ struct SourceWrapper<absl::Cord> {
 
 }  // namespace internal
 
-bool MessageLite::MergeFromCord(const absl::Cord& cord) {
-  return ParseFrom<kMerge>(internal::SourceWrapper<absl::Cord>(&cord));
+bool MessageLite::MergeFromString(const absl::Cord& data) {
+  return ParseFrom<kMerge>(internal::SourceWrapper<absl::Cord>(&data));
 }
 
-bool MessageLite::MergePartialFromCord(const absl::Cord& cord) {
-  return ParseFrom<kMergePartial>(internal::SourceWrapper<absl::Cord>(&cord));
+bool MessageLite::MergePartialFromString(const absl::Cord& data) {
+  return ParseFrom<kMergePartial>(internal::SourceWrapper<absl::Cord>(&data));
 }
 
-bool MessageLite::ParseFromCord(const absl::Cord& cord) {
-  return ParseFrom<kParse>(internal::SourceWrapper<absl::Cord>(&cord));
+bool MessageLite::ParseFromString(const absl::Cord& data) {
+  return ParseFrom<kParse>(internal::SourceWrapper<absl::Cord>(&data));
 }
 
-bool MessageLite::ParsePartialFromCord(const absl::Cord& cord) {
-  return ParseFrom<kParsePartial>(internal::SourceWrapper<absl::Cord>(&cord));
+bool MessageLite::ParsePartialFromString(const absl::Cord& data) {
+  return ParseFrom<kParsePartial>(internal::SourceWrapper<absl::Cord>(&data));
 }
 
 // ===================================================================
@@ -640,13 +666,13 @@ std::string MessageLite::SerializePartialAsString() const {
   return output;
 }
 
-bool MessageLite::AppendToCord(absl::Cord* output) const {
+bool MessageLite::AppendToString(absl::Cord* output) const {
   ABSL_DCHECK(IsInitialized())
       << InitializationErrorMessage("serialize", *this);
-  return AppendPartialToCord(output);
+  return AppendPartialToString(output);
 }
 
-bool MessageLite::AppendPartialToCord(absl::Cord* output) const {
+bool MessageLite::AppendPartialToString(absl::Cord* output) const {
   // For efficiency, we'd like to pass a size hint to CordOutputStream with
   // the exact total size expected.
   const size_t size = ByteSizeLong();
@@ -692,27 +718,28 @@ bool MessageLite::AppendPartialToCord(absl::Cord* output) const {
   return true;
 }
 
-bool MessageLite::SerializeToCord(absl::Cord* output) const {
+bool MessageLite::SerializeToString(absl::Cord* output) const {
   output->Clear();
-  return AppendToCord(output);
+  return AppendToString(output);
 }
 
-bool MessageLite::SerializePartialToCord(absl::Cord* output) const {
+bool MessageLite::SerializePartialToString(absl::Cord* output) const {
   output->Clear();
-  return AppendPartialToCord(output);
+  return AppendPartialToString(output);
 }
 
 absl::Cord MessageLite::SerializeAsCord() const {
   absl::Cord output;
-  if (!AppendToCord(&output)) output.Clear();
+  if (!AppendToString(&output)) output.Clear();
   return output;
 }
 
 absl::Cord MessageLite::SerializePartialAsCord() const {
   absl::Cord output;
-  if (!AppendPartialToCord(&output)) output.Clear();
+  if (!AppendPartialToString(&output)) output.Clear();
   return output;
 }
+
 
 namespace internal {
 

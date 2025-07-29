@@ -1,7 +1,9 @@
 # This package contains tests exercising C++/Rust interop in the cpp kernel.
 
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_rust//rust:defs.bzl", "rust_test")
 load("//bazel:cc_proto_library.bzl", "cc_proto_library")
+load("//bazel:proto_library.bzl", "proto_library")
 load(
     "//rust:defs.bzl",
     "rust_cc_proto_library",
@@ -13,8 +15,8 @@ cc_library(
     deps = [
         ":interop_test_cc_proto",
         "//rust/cpp_kernel:cpp_api",
-        "@com_google_absl//absl/log:absl_check",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/log:absl_check",
+        "@abseil-cpp//absl/strings",
     ],
 )
 

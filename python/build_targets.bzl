@@ -1,11 +1,16 @@
-# Protobuf Python runtime
-#
-# See also code generation logic under /src/google/protobuf/compiler/python.
-#
-# Most users should depend upon public aliases in the root:
-#   //:protobuf_python
-#   //:well_known_types_py_pb2
+"""
+Protobuf Python runtime
 
+See also code generation logic under /src/google/protobuf/compiler/python.
+
+Most users should depend upon public aliases in the root:
+    //:protobuf_python
+    //:well_known_types_py_pb2
+"""
+
+load("@bazel_skylib//lib:selects.bzl", "selects")
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_pkg//pkg:mappings.bzl", "pkg_files", "strip_prefix")
 load("@rules_python//python:defs.bzl", "py_library")
 load("//:protobuf.bzl", "internal_py_proto_library")
@@ -69,13 +74,19 @@ def build_targets(name):
         ],
         strip_prefix = "src",
     )
-
-    native.cc_binary(
+    cc_binary(
         name = "google/protobuf/internal/_api_implementation.so",
         srcs = ["google/protobuf/internal/api_implementation.cc"],
         copts = COPTS + [
             "-DPYTHON_PROTO2_CPP_IMPL_V2",
         ],
+        linkopts = selects.with_or({
+            (
+                "//python/dist:osx_x86_64",
+                "//python/dist:osx_aarch64",
+            ): ["-Wl,-undefined,dynamic_lookup"],
+            "//conditions:default": [],
+        }),
         linkshared = 1,
         linkstatic = 1,
         tags = [
@@ -97,8 +108,7 @@ def build_targets(name):
             "define": "allow_oversize_protos=true",
         },
     )
-
-    native.cc_binary(
+    cc_binary(
         name = "google/protobuf/pyext/_message.so",
         srcs = native.glob([
             "google/protobuf/pyext/*.cc",
@@ -109,6 +119,13 @@ def build_targets(name):
         ] + select({
             "//conditions:default": [],
             ":allow_oversize_protos": ["-DPROTOBUF_PYTHON_ALLOW_OVERSIZE_PROTOS=1"],
+        }),
+        linkopts = selects.with_or({
+            (
+                "//python/dist:osx_x86_64",
+                "//python/dist:osx_aarch64",
+            ): ["-Wl,-undefined,dynamic_lookup"],
+            "//conditions:default": [],
         }),
         includes = ["."],
         linkshared = 1,
@@ -129,11 +146,12 @@ def build_targets(name):
             "//src/google/protobuf/io:tokenizer",
             "//src/google/protobuf/stubs:lite",
             "//src/google/protobuf/util:differencer",
-            "@com_google_absl//absl/container:flat_hash_map",
-            "@com_google_absl//absl/log:absl_check",
-            "@com_google_absl//absl/log:absl_log",
-            "@com_google_absl//absl/status",
-            "@com_google_absl//absl/strings",
+            "@abseil-cpp//absl/container:flat_hash_map",
+            "@abseil-cpp//absl/log:absl_check",
+            "@abseil-cpp//absl/log:absl_log",
+            "@abseil-cpp//absl/status",
+            "@abseil-cpp//absl/status:statusor",
+            "@abseil-cpp//absl/strings",
         ] + select({
             "//conditions:default": [],
             ":use_fast_cpp_protos": ["@system_python//:python_headers"],
@@ -430,8 +448,7 @@ def build_targets(name):
         name = "proto_json_test",
         srcs = ["google/protobuf/internal/proto_json_test.py"],
     )
-
-    native.cc_library(
+    cc_library(
         name = "proto_api",
         srcs = ["google/protobuf/proto_api.cc"],
         hdrs = ["google/protobuf/proto_api.h"],
@@ -439,8 +456,9 @@ def build_targets(name):
         visibility = ["//visibility:public"],
         deps = [
             "//src/google/protobuf",
-            "@com_google_absl//absl/log:absl_check",
-            "@com_google_absl//absl/status",
+            "//src/google/protobuf/io",
+            "@abseil-cpp//absl/log:absl_check",
+            "@abseil-cpp//absl/status",
             "@system_python//:python_headers",
         ],
     )
@@ -476,7 +494,7 @@ def build_targets(name):
         }),
         maximum_edition = "2023",
         testee = "//conformance:conformance_python",
-        text_format_failure_list = "//conformance:text_format_failure_list_python_cpp.txt",
+        text_format_failure_list = "//conformance:text_format_failure_list_python.txt",
     )
 
     conformance_test(
@@ -490,7 +508,7 @@ def build_targets(name):
         }),
         maximum_edition = "2023",
         testee = "//conformance:conformance_python",
-        text_format_failure_list = "//conformance:text_format_failure_list_python_upb.txt",
+        text_format_failure_list = "//conformance:text_format_failure_list_python.txt",
     )
 
     ################################################################################

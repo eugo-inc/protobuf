@@ -504,10 +504,13 @@ class PROTOBUF_EXPORT MessageDifferencer {
 
   // Add a custom ignore criteria that is evaluated in addition to the
   // ignored fields added with IgnoreField.
-  // Takes ownership of ignore_criteria.
+#ifndef PROTOBUF_FUTURE_REMOVE_ADD_IGNORE_CRITERIA
+  ABSL_DEPRECATE_AND_INLINE()
   void AddIgnoreCriteria(IgnoreCriteria* ignore_criteria) {
     AddIgnoreCriteria(absl::WrapUnique(ignore_criteria));
   }
+#endif  // !PROTOBUF_FUTURE_REMOVE_ADD_IGNORE_CRITERIA
+
   void AddIgnoreCriteria(std::unique_ptr<IgnoreCriteria> ignore_criteria);
 
   // Indicates that any field with the given descriptor should be
@@ -931,6 +934,10 @@ class PROTOBUF_EXPORT MessageDifferencer {
   bool ShouldCompareNoPresence(const Message& message1,
                                const Reflection& reflection1,
                                const FieldDescriptor* field2) const;
+
+  // We move this code out of line to reduce stack cost of the caller.
+  // The map lookups and string copies are costly in stack space.
+  PROTOBUF_NOINLINE void ForceCompareField(const FieldDescriptor* field);
 
   Reporter* reporter_;
   DefaultFieldComparator default_field_comparator_;

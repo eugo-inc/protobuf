@@ -7,35 +7,36 @@
 
 #include "google/protobuf/json/internal/unparser.h"
 
-#include <cfloat>
 #include <cmath>
-#include <complex>
 #include <cstdint>
 #include <cstring>
 #include <limits>
-#include <memory>
-#include <sstream>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "absl/log/absl_check.h"
 #include "absl/log/absl_log.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/ascii.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "google/protobuf/descriptor.h"
 #include "google/protobuf/dynamic_message.h"
 #include "google/protobuf/io/coded_stream.h"
+#include "google/protobuf/io/zero_copy_sink.h"
 #include "google/protobuf/io/zero_copy_stream.h"
+#include "google/protobuf/io/zero_copy_stream_impl_lite.h"
 #include "google/protobuf/json/internal/descriptor_traits.h"
 #include "google/protobuf/json/internal/unparser_traits.h"
 #include "google/protobuf/json/internal/writer.h"
 #include "google/protobuf/message.h"
+#include "google/protobuf/util/type_resolver.h"
 #include "google/protobuf/stubs/status_macros.h"
 
 // Must be included last.
@@ -826,22 +827,19 @@ absl::Status WriteMessage(JsonWriter& writer, const Msg<Traits>& msg,
 }
 }  // namespace
 
-absl::Status MessageToJsonString(const Message& message, std::string* output,
+absl::Status MessageToJsonStream(const Message& message,
+                                 io::ZeroCopyOutputStream* json_output,
                                  json_internal::WriterOptions options) {
   if (PROTOBUF_DEBUG) {
     ABSL_DLOG(INFO) << "json2/input: " << message.DebugString();
   }
-  io::StringOutputStream out(output);
-  JsonWriter writer(&out, options);
+  JsonWriter writer(json_output, options);
   absl::Status s = WriteMessage<UnparseProto2Descriptor>(
       writer, message, *message.GetDescriptor(), /*is_top_level=*/true);
   if (PROTOBUF_DEBUG) ABSL_DLOG(INFO) << "json2/status: " << s;
   RETURN_IF_ERROR(s);
 
   writer.NewLine();
-  if (PROTOBUF_DEBUG) {
-    ABSL_DLOG(INFO) << "json2/output: " << absl::CHexEscape(*output);
-  }
   return absl::OkStatus();
 }
 
@@ -861,8 +859,8 @@ absl::Status BinaryToJsonStream(google::protobuf::util::TypeResolver* resolver,
   // input and output streams.
   std::string copy;
   std::string out;
-  absl::optional<io::ArrayInputStream> tee_input;
-  absl::optional<io::StringOutputStream> tee_output;
+  std::optional<io::ArrayInputStream> tee_input;
+  std::optional<io::StringOutputStream> tee_output;
   if (PROTOBUF_DEBUG) {
     const void* data;
     int len;
@@ -905,3 +903,5 @@ absl::Status BinaryToJsonStream(google::protobuf::util::TypeResolver* resolver,
 }  // namespace json_internal
 }  // namespace protobuf
 }  // namespace google
+
+#include "google/protobuf/port_undef.inc"

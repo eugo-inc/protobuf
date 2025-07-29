@@ -171,24 +171,30 @@ rust_test(
 rust_test(
     name = "bad_names_cpp_test",
     srcs = ["bad_names_test.rs"],
+    aliases = {
+        "//rust:protobuf_cpp_export": "protobuf",
+    },
     deps = [
+        "//rust:protobuf_cpp_export",
         "//rust/test:bad_names_cpp_rust_proto",
         "//rust/test:unittest_cpp_rust_proto",
         "@crate_index//:googletest",
     ],
 )
 
-# TODO: This test currently fails on upb due to the thunk names not correctly matching
-# the upb C codegen collision avoidance.
-# rust_test(
-#     name = "bad_names_upb_test",
-#     srcs = ["bad_names_test.rs"],
-#     deps = [
-#         "@crate_index//:googletest",
-#         "//rust/test:bad_names_upb_rust_proto",
-#         "//rust/test:unittest_upb_rust_proto",
-#     ],
-# )
+rust_test(
+    name = "bad_names_upb_test",
+    srcs = ["bad_names_test.rs"],
+    aliases = {
+        "//rust:protobuf_upb_export": "protobuf",
+    },
+    deps = [
+        "//rust:protobuf_upb_export",
+        "//rust/test:bad_names_upb_rust_proto",
+        "//rust/test:unittest_upb_rust_proto",
+        "@crate_index//:googletest",
+    ],
+)
 
 rust_test(
     name = "nested_types_cpp_test",
@@ -314,6 +320,7 @@ rust_test(
     },
     deps = [
         "//rust:protobuf_cpp_export",
+        "//rust/test:map_unittest_cpp_rust_proto",
         "//rust/test:nested_cpp_rust_proto",
         "@crate_index//:googletest",
     ],
@@ -327,6 +334,7 @@ rust_test(
     },
     deps = [
         "//rust:protobuf_upb_export",
+        "//rust/test:map_unittest_upb_rust_proto",
         "//rust/test:nested_upb_rust_proto",
         "@crate_index//:googletest",
     ],
@@ -423,8 +431,8 @@ rust_test(
 )
 
 rust_test(
-    name = "merge_from_cpp_test",
-    srcs = ["merge_from_test.rs"],
+    name = "message_copy_merge_cpp_test",
+    srcs = ["message_copy_merge_test.rs"],
     aliases = {
         "//rust:protobuf_cpp": "protobuf",
     },
@@ -436,8 +444,8 @@ rust_test(
 )
 
 rust_test(
-    name = "merge_from_upb_test",
-    srcs = ["merge_from_test.rs"],
+    name = "message_copy_merge_upb_test",
+    srcs = ["message_copy_merge_test.rs"],
     aliases = {
         "//rust:protobuf_upb": "protobuf",
     },

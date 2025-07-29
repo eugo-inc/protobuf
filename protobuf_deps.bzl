@@ -5,15 +5,27 @@ and sets up the repositories protobuf needs:
 
 ```
 http_archive(
-    name = "protobuf",
+    name = "com_google_protobuf",
     strip_prefix = "protobuf-VERSION",
     sha256 = ...,
     url = ...,
 )
 
-load("@protobuf//:protobuf_deps.bzl", "protobuf_deps")
+load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
 
 protobuf_deps()
+
+load("@rules_java//java:rules_java_deps.bzl", "rules_java_dependencies")
+
+rules_java_dependencies()
+
+load("@rules_java//java:repositories.bzl", "rules_java_toolchains")
+
+rules_java_toolchains()
+
+load("@rules_python//python:repositories.bzl", "py_repositories")
+
+py_repositories()
 ```
 """
 
@@ -23,18 +35,11 @@ load("//python/dist:python_downloads.bzl", "python_nuget_package", "python_sourc
 load("//python/dist:system_python.bzl", "system_python")
 
 PROTOBUF_MAVEN_ARTIFACTS = [
-    "com.google.caliper:caliper:1.0-beta-3",
     "com.google.code.findbugs:jsr305:3.0.2",
     "com.google.code.gson:gson:2.8.9",
     "com.google.errorprone:error_prone_annotations:2.5.1",
     "com.google.j2objc:j2objc-annotations:2.8",
     "com.google.guava:guava:32.0.1-jre",
-    "com.google.guava:guava-testlib:32.0.1-jre",
-    "com.google.truth:truth:1.1.2",
-    "junit:junit:4.13.2",
-    "org.mockito:mockito-core:4.3.1",
-    "biz.aQute.bnd:biz.aQute.bndlib:6.4.0",
-    "info.picocli:picocli:4.6.3",
 ]
 
 def _github_archive(repo, commit, **kwargs):
@@ -48,6 +53,24 @@ def _github_archive(repo, commit, **kwargs):
 def protobuf_deps():
     """Loads common dependencies needed to compile the protobuf library."""
 
+    # Pin rules_proto since Bazel 7 otherwise depends on rules_proto 5.3.0-21.7 which is missing
+    # @rules_proto//proto:toolchain_type used by Bazel.
+    # 6.0.0 would at least require users to add `register_toolchains` for rules_proto
+    # TODO: Remove once Bazel 7 is no longer supported.
+    if not native.existing_rule("rules_proto"):
+        http_archive(
+            name = "rules_proto",
+            strip_prefix = "rules_proto-7.1.0",
+            url = "https://github.com/bazelbuild/rules_proto/releases/download/7.1.0/rules_proto-7.1.0.tar.gz",
+        )
+    if not native.existing_rule("bazel_features"):
+        http_archive(
+            name = "bazel_features",
+            sha256 = "95fb3cfd11466b4cad6565e3647a76f89886d875556a4b827c021525cb2482bb",
+            strip_prefix = "bazel_features-1.10.0",
+            url = "https://github.com/bazel-contrib/bazel_features/releases/download/v1.10.0/bazel_features-v1.10.0.tar.gz",
+        )
+
     if not native.existing_rule("bazel_skylib"):
         http_archive(
             name = "bazel_skylib",
@@ -58,12 +81,12 @@ def protobuf_deps():
             ],
         )
 
-    if not native.existing_rule("com_google_absl"):
+    if not native.existing_rule("abseil-cpp"):
         _github_archive(
-            name = "com_google_absl",
+            name = "abseil-cpp",
             repo = "https://github.com/abseil/abseil-cpp",
-            commit = "4447c7562e3bc702ade25105912dce503f0c4010",  # Abseil LTS 20240722.0
-            sha256 = "d8342ad77aa9e16103c486b615460c24a695a1f04cdb760eb02fef780df99759",
+            commit = "76bb24329e8bf5f39704eb10d21b9a80befa7c81",  # Abseil LTS 20250512.1
+            integrity = "sha256-jF3/tZRlrthY/Y+cEgf1ljqPmtqNOcwVh392LHtERWA=",
         )
 
     if not native.existing_rule("zlib"):
@@ -98,8 +121,10 @@ def protobuf_deps():
     if not native.existing_rule("rules_java"):
         http_archive(
             name = "rules_java",
-            url = "https://github.com/bazelbuild/rules_java/releases/download/8.3.2/rules_java-8.3.2.tar.gz",
-            sha256 = "9b9614f8a7f7b7ed93cb7975d227ece30fe7daed2c0a76f03a5ee37f69e437de",
+            urls = [
+                "https://github.com/bazelbuild/rules_java/releases/download/8.6.1/rules_java-8.6.1.tar.gz",
+            ],
+            sha256 = "c5bc17e17bb62290b1fd8fdd847a2396d3459f337a7e07da7769b869b488ec26",
         )
 
     if not native.existing_rule("rules_shell"):
@@ -116,9 +141,9 @@ def protobuf_deps():
     if not native.existing_rule("rules_python"):
         http_archive(
             name = "rules_python",
-            sha256 = "d70cd72a7a4880f0000a6346253414825c19cdd40a28289bdf67b8e6480edff8",
-            strip_prefix = "rules_python-0.28.0",
-            url = "https://github.com/bazelbuild/rules_python/releases/download/0.28.0/rules_python-0.28.0.tar.gz",
+            sha256 = "9f9f3b300a9264e4c77999312ce663be5dee9a56e361a1f6fe7ec60e1beef9a3",
+            strip_prefix = "rules_python-1.4.1",
+            url = "https://github.com/bazel-contrib/rules_python/releases/download/1.4.1/rules_python-1.4.1.tar.gz",
         )
 
     if not native.existing_rule("system_python"):
@@ -130,9 +155,9 @@ def protobuf_deps():
     if not native.existing_rule("rules_jvm_external"):
         http_archive(
             name = "rules_jvm_external",
-            strip_prefix = "rules_jvm_external-6.3",
-            sha256 = "c18a69d784bcd851be95897ca0eca0b57dc86bb02e62402f15736df44160eb02",
-            url = "https://github.com/bazelbuild/rules_jvm_external/releases/download/6.3/rules_jvm_external-6.3.tar.gz",
+            strip_prefix = "rules_jvm_external-6.7",
+            sha256 = "a1e351607f04fed296ba33c4977d3fe2a615ed50df7896676b67aac993c53c18",
+            url = "https://github.com/bazelbuild/rules_jvm_external/releases/download/6.7/rules_jvm_external-6.7.tar.gz",
         )
 
     if not native.existing_rule("rules_pkg"):
@@ -148,15 +173,15 @@ def protobuf_deps():
     if not native.existing_rule("build_bazel_rules_apple"):
         http_archive(
             name = "build_bazel_rules_apple",
-            sha256 = "9c4f1e1ec4fdfeac5bddb07fa0e872c398e3d8eb0ac596af9c463f9123ace292",
-            url = "https://github.com/bazelbuild/rules_apple/releases/download/3.2.1/rules_apple.3.2.1.tar.gz",
+            sha256 = "86ff9c3a2c7bc308fef339bcd5b3819aa735215033886cc281eb63f10cd17976",
+            url = "https://github.com/bazelbuild/rules_apple/releases/download/3.16.0/rules_apple.3.16.0.tar.gz",
         )
 
     if not native.existing_rule("build_bazel_apple_support"):
         http_archive(
             name = "build_bazel_apple_support",
-            sha256 = "100d12617a84ebc7ee7a10ecf3b3e2fdadaebc167ad93a21f820a6cb60158ead",
-            url = "https://github.com/bazelbuild/apple_support/releases/download/1.12.0/apple_support.1.12.0.tar.gz",
+            sha256 = "c4bb2b7367c484382300aee75be598b92f847896fb31bbd22f3a2346adf66a80",
+            url = "https://github.com/bazelbuild/apple_support/releases/download/1.15.1/apple_support.1.15.1.tar.gz",
         )
 
     if not native.existing_rule("rules_kotlin"):

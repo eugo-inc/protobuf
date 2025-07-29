@@ -68,11 +68,7 @@ import javax.annotation.Nullable;
 
 /**
  * Utility class to convert protobuf messages to/from the <a href=
- * 'https://developers.google.com/protocol-buffers/docs/proto3#json'>Proto3 JSON format.</a>
- * Only proto3 features are supported. Proto2 only features such as extensions and unknown fields
- * are discarded in the conversion. That is, when converting proto2 messages to JSON format,
- * extensions and unknown fields are treated as if they do not exist. This applies to proto2
- * messages embedded in proto3 messages as well.
+ * 'https://protobuf.dev/programming-guides/json/'>ProtoJSON format.</a>
  */
 public class JsonFormat {
   private static final Logger logger = Logger.getLogger(JsonFormat.class.getName());
@@ -862,7 +858,7 @@ public class JsonFormat {
 
     /** Prints google.protobuf.Any */
     private void printAny(MessageOrBuilder message) throws IOException {
-      if (Any.getDefaultInstance().equals(message)) {
+      if (message.getDefaultInstanceForType().equals(message)) {
         generator.print("{}");
         return;
       }
@@ -1238,7 +1234,7 @@ public class JsonFormat {
           if (alwaysWithQuotes) {
             generator.print("\"");
           }
-          generator.print(unsignedToString((Integer) value));
+          generator.print(Integer.toUnsignedString((int) value));
           if (alwaysWithQuotes) {
             generator.print("\"");
           }
@@ -1246,7 +1242,7 @@ public class JsonFormat {
 
         case UINT64:
         case FIXED64:
-          generator.print("\"" + unsignedToString((Long) value) + "\"");
+          generator.print("\"" + Long.toUnsignedString((long) value) + "\"");
           break;
 
         case STRING:
@@ -1284,26 +1280,6 @@ public class JsonFormat {
           print((Message) value);
           break;
       }
-    }
-  }
-
-  /** Convert an unsigned 32-bit integer to a string. */
-  private static String unsignedToString(final int value) {
-    if (value >= 0) {
-      return Integer.toString(value);
-    } else {
-      return Long.toString(value & 0x00000000FFFFFFFFL);
-    }
-  }
-
-  /** Convert an unsigned 64-bit integer to a string. */
-  private static String unsignedToString(final long value) {
-    if (value >= 0) {
-      return Long.toString(value);
-    } else {
-      // Pull off the most-significant bit so that BigInteger doesn't think
-      // the number is negative, then set it again using setBit().
-      return BigInteger.valueOf(value & Long.MAX_VALUE).setBit(Long.SIZE - 1).toString();
     }
   }
 

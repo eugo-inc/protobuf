@@ -59,12 +59,13 @@ class WeakFieldMap;  // weak_field_map.h
 // Tag used on offsets for fields that don't have a real offset.
 // For example, weak message fields go into the WeakFieldMap and not in an
 // actual field.
-constexpr uint32_t kInvalidFieldOffsetTag = 0x40000000u;
+inline constexpr uint32_t kInvalidFieldOffsetTag = 0x40000000u;
 
 // Mask used on offsets for split fields.
-constexpr uint32_t kSplitFieldOffsetMask = 0x80000000u;
-constexpr uint32_t kLazyMask = 0x1u;
-constexpr uint32_t kInlinedMask = 0x1u;
+inline constexpr uint32_t kSplitFieldOffsetMask = 0x80000000u;
+inline constexpr uint32_t kLazyMask = 0x1u;
+inline constexpr uint32_t kInlinedMask = 0x1u;
+inline constexpr uint32_t kMicroStringMask = 0x2u;
 
 // This struct describes the internal layout of the message, hence this is
 // used to act on the message reflectively.
@@ -118,27 +119,18 @@ struct ReflectionSchema {
     return field->real_containing_oneof();
   }
 
-  // Offset of a non-oneof field.  Getting a field offset is slightly more
-  // efficient when we know statically that it is not a oneof field.
-  uint32_t GetFieldOffsetNonOneof(const FieldDescriptor* field) const {
-    ABSL_DCHECK(!InRealOneof(field));
-    return OffsetValue(offsets_[field->index()], field->type());
-  }
-
   // Offset of any field.
+  template <typename Type = void>
   uint32_t GetFieldOffset(const FieldDescriptor* field) const {
-    if (InRealOneof(field)) {
-      size_t offset =
-          static_cast<size_t>(field->containing_type()->field_count()) +
-          field->containing_oneof()->index();
-      return OffsetValue(offsets_[offset], field->type());
-    } else {
-      return GetFieldOffsetNonOneof(field);
-    }
+    return OffsetValue<Type>(offsets_[field->index()], field->type());
   }
 
   bool IsFieldInlined(const FieldDescriptor* field) const {
     return Inlined(offsets_[field->index()], field->type());
+  }
+
+  bool IsFieldMicroString(const FieldDescriptor* field) const {
+    return IsMicroString(offsets_[field->index()], field->type());
   }
 
   uint32_t GetOneofCaseOffset(const OneofDescriptor* oneof_descriptor) const {
@@ -156,6 +148,7 @@ struct ReflectionSchema {
 
   // Bit index within the bit array of hasbits.  Bit order is low-to-high.
   uint32_t HasBitIndex(const FieldDescriptor* field) const {
+    ABSL_DCHECK(!field->is_extension());
     if (has_bits_offset_ == -1) return static_cast<uint32_t>(-1);
     ABSL_DCHECK(HasHasbits());
     return has_bit_indices_[field->index()];
@@ -182,14 +175,6 @@ struct ReflectionSchema {
     return static_cast<uint32_t>(inlined_string_donated_offset_);
   }
 
-  // The offset of the InternalMetadataWithArena member.
-  // For Lite this will actually be an InternalMetadataWithArenaLite.
-  // The schema doesn't contain enough information to distinguish between
-  // these two cases.
-  uint32_t GetMetadataOffset() const {
-    return static_cast<uint32_t>(metadata_offset_);
-  }
-
   // Whether this message has an ExtensionSet.
   bool HasExtensionSet() const { return extensions_offset_ != -1; }
 
@@ -211,7 +196,7 @@ struct ReflectionSchema {
   // of the underlying data depends on the field's type.
   const void* GetFieldDefault(const FieldDescriptor* field) const {
     return reinterpret_cast<const uint8_t*>(default_instance_) +
-           OffsetValue(offsets_[field->index()], field->type());
+           OffsetValue<void>(offsets_[field->index()], field->type());
   }
 
   // Returns true if the field is implicitly backed by LazyField.
@@ -252,7 +237,6 @@ struct ReflectionSchema {
   const uint32_t* offsets_;
   const uint32_t* has_bit_indices_;
   int has_bits_offset_;
-  int metadata_offset_;
   int extensions_offset_;
   int oneof_case_offset_;
   int object_size_;
@@ -264,11 +248,18 @@ struct ReflectionSchema {
 
   // We tag offset values to provide additional data about fields (such as
   // "unused" or "lazy" or "inlined").
+  template <typename Type>
   static uint32_t OffsetValue(uint32_t v, FieldDescriptor::Type type) {
+    if constexpr (!std::is_void_v<Type>) {
+      // If the type is passed, statically use the alignment for the mask.
+      // Faster than checking `type`.
+      return v & ~kSplitFieldOffsetMask & ~(alignof(Type) - 1);
+    }
     if (type == FieldDescriptor::TYPE_MESSAGE ||
         type == FieldDescriptor::TYPE_STRING ||
         type == FieldDescriptor::TYPE_BYTES) {
-      return v & (~kSplitFieldOffsetMask) & (~kInlinedMask) & (~kLazyMask);
+      return v & ~kSplitFieldOffsetMask & ~kInlinedMask & ~kLazyMask &
+             ~kMicroStringMask;
     }
     return v & (~kSplitFieldOffsetMask);
   }
@@ -282,6 +273,13 @@ struct ReflectionSchema {
       return false;
     }
   }
+
+  static bool IsMicroString(uint32_t v, FieldDescriptor::Type type) {
+    ABSL_DCHECK(type == FieldDescriptor::TYPE_STRING ||
+                type == FieldDescriptor::TYPE_BYTES)
+        << type;
+    return (v & kMicroStringMask) != 0u;
+  }
 };
 
 // Structs that the code generator emits directly to describe a message.
@@ -292,8 +290,6 @@ struct ReflectionSchema {
 // or merge with ReflectionSchema.
 struct MigrationSchema {
   int32_t offsets_index;
-  int32_t has_bit_indices_index;
-  int32_t inlined_string_indices_index;
   int object_size;
 };
 

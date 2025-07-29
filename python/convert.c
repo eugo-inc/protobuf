@@ -180,12 +180,7 @@ static bool PyUpb_PyToUpbEnum(PyObject* obj, const upb_EnumDef* e,
   } else {
     int32_t i32;
     if (!PyUpb_GetInt32(obj, &i32)) return false;
-#ifdef UPB_FUTURE_PYTHON_CLOSED_ENUM_ENFORCEMENT
     if (upb_EnumDef_IsClosed(e) && !upb_EnumDef_CheckNumber(e, i32)) {
-#else
-    if (upb_FileDef_Syntax(upb_EnumDef_File(e)) == kUpb_Syntax_Proto2 &&
-        !upb_EnumDef_CheckNumber(e, i32)) {
-#endif
       PyErr_Format(PyExc_ValueError, "invalid enumerator %d", (int)i32);
       return false;
     }
@@ -208,6 +203,37 @@ bool PyUpb_IsNumpyNdarray(PyObject* obj, const upb_FieldDef* f) {
   return is_ndarray;
 }
 
+bool PyUpb_IsNumpyBoolScalar(PyObject* obj) {
+  PyObject* type_module_obj =
+      PyObject_GetAttrString((PyObject*)Py_TYPE(obj), "__module__");
+  bool is_numpy = !strcmp(PyUpb_GetStrData(type_module_obj), "numpy");
+  Py_DECREF(type_module_obj);
+  if (!is_numpy) {
+    return false;
+  }
+
+  PyObject* type_name_obj =
+      PyObject_GetAttrString((PyObject*)Py_TYPE(obj), "__name__");
+  bool is_bool = !strcmp(PyUpb_GetStrData(type_name_obj), "bool");
+  Py_DECREF(type_name_obj);
+  if (!is_bool) {
+    return false;
+  }
+  return true;
+}
+
+static bool PyUpb_GetBool(PyObject* obj, const upb_FieldDef* f, bool* val) {
+  if (!PyBool_Check(obj)) {
+    if (PyUpb_IsNumpyNdarray(obj, f)) return false;
+    if (PyUpb_IsNumpyBoolScalar(obj)) {
+      *val = PyObject_IsTrue(obj);
+      return !PyErr_Occurred();
+    }
+  }
+  *val = PyLong_AsLong(obj);
+  return !PyErr_Occurred();
+}
+
 bool PyUpb_PyToUpb(PyObject* obj, const upb_FieldDef* f, upb_MessageValue* val,
                    upb_Arena* arena) {
   switch (upb_FieldDef_CType(f)) {
@@ -222,17 +248,15 @@ bool PyUpb_PyToUpb(PyObject* obj, const upb_FieldDef* f, upb_MessageValue* val,
     case kUpb_CType_UInt64:
       return PyUpb_GetUint64(obj, &val->uint64_val);
     case kUpb_CType_Float:
-      if (PyUpb_IsNumpyNdarray(obj, f)) return false;
+      if (!PyFloat_Check(obj) && PyUpb_IsNumpyNdarray(obj, f)) return false;
       val->float_val = PyFloat_AsDouble(obj);
       return !PyErr_Occurred();
     case kUpb_CType_Double:
-      if (PyUpb_IsNumpyNdarray(obj, f)) return false;
+      if (!PyFloat_Check(obj) && PyUpb_IsNumpyNdarray(obj, f)) return false;
       val->double_val = PyFloat_AsDouble(obj);
       return !PyErr_Occurred();
     case kUpb_CType_Bool:
-      if (PyUpb_IsNumpyNdarray(obj, f)) return false;
-      val->bool_val = PyLong_AsLong(obj);
-      return !PyErr_Occurred();
+      return PyUpb_GetBool(obj, f, &val->bool_val);
     case kUpb_CType_Bytes: {
       char* ptr;
       Py_ssize_t size;

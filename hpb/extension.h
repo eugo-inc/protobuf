@@ -10,136 +10,54 @@
 
 #include <cstdint>
 #include <type_traits>
-#include <vector>
 
 #include "absl/base/attributes.h"
-#include "absl/log/absl_log.h"
-#include "absl/status/status.h"
-#include "absl/status/statusor.h"
-#include "google/protobuf/hpb/backend/upb/interop.h"
-#include "google/protobuf/hpb/internal/message_lock.h"
-#include "google/protobuf/hpb/internal/template_help.h"
-#include "google/protobuf/hpb/ptr.h"
-#include "google/protobuf/hpb/status.h"
-#include "upb/mem/arena.hpp"
+#include "hpb/arena.h"
+#include "hpb/backend/upb/extension.h"
+#include "hpb/backend/upb/interop.h"
+#include "hpb/internal/message_lock.h"
+#include "hpb/internal/template_help.h"
+#include "hpb/multibackend.h"
+#include "hpb/ptr.h"
 #include "upb/message/accessors.h"
-#include "upb/message/array.h"
-#include "upb/mini_table/extension.h"
 #include "upb/mini_table/extension_registry.h"
 
 namespace hpb {
-class ExtensionRegistry;
-
-namespace internal {
-
-absl::Status MoveExtension(upb_Message* message, upb_Arena* message_arena,
-                           const upb_MiniTableExtension* ext,
-                           upb_Message* extension, upb_Arena* extension_arena);
-
-absl::Status SetExtension(upb_Message* message, upb_Arena* message_arena,
-                          const upb_MiniTableExtension* ext,
-                          const upb_Message* extension);
-
-/**
- * Trait that maps upb extension types to the corresponding
- * return value: ubp_MessageValue.
- *
- * All partial specializations must have:
- * - DefaultType: the type of the default value.
- * - ReturnType: the type of the return value.
- * - kGetter: the corresponding upb_MessageValue upb_Message_GetExtension* func
- */
-template <typename T, typename = void>
-struct UpbExtensionTrait;
-
-template <>
-struct UpbExtensionTrait<int32_t> {
-  using DefaultType = int32_t;
-  using ReturnType = int32_t;
-  static constexpr auto kGetter = upb_Message_GetExtensionInt32;
-  static constexpr auto kSetter = upb_Message_SetExtensionInt32;
-};
-
-template <>
-struct UpbExtensionTrait<int64_t> {
-  using DefaultType = int64_t;
-  using ReturnType = int64_t;
-  static constexpr auto kGetter = upb_Message_GetExtensionInt64;
-  static constexpr auto kSetter = upb_Message_SetExtensionInt64;
-};
-
-// TODO: b/375460289 - flesh out non-promotional msg support that does
-// not return an error if missing but the default msg
-template <typename T>
-struct UpbExtensionTrait<T> {
-  using DefaultType = std::false_type;
-  using ReturnType = Ptr<const T>;
-};
-
-// -------------------------------------------------------------------
-// ExtensionIdentifier
-// This is the type of actual extension objects.  E.g. if you have:
-//   extend Foo {
-//     optional MyExtension bar = 1234;
-//   }
-// then "bar" will be defined in C++ as:
-//   ExtensionIdentifier<Foo, MyExtension> bar(&namespace_bar_ext);
-template <typename ExtendeeType, typename ExtensionType>
-class ExtensionIdentifier {
- public:
-  using Extension = ExtensionType;
-  using Extendee = ExtendeeType;
-
-  // Placeholder for extant legacy callers, avoid use if possible
-  const upb_MiniTableExtension* mini_table_ext() const {
-    return mini_table_ext_;
-  }
-
- private:
-  constexpr explicit ExtensionIdentifier(
-      const upb_MiniTableExtension* mte,
-      typename UpbExtensionTrait<ExtensionType>::DefaultType val)
-      : mini_table_ext_(mte), default_val_(val) {}
-
-  constexpr uint32_t number() const {
-    return upb_MiniTableExtension_Number(mini_table_ext_);
-  }
-
-  const upb_MiniTableExtension* mini_table_ext_;
-
-  typename UpbExtensionTrait<ExtensionType>::ReturnType default_value() const {
-    if constexpr (IsHpbClass<ExtensionType>) {
-      return ExtensionType::default_instance();
-    } else {
-      return default_val_;
-    }
-  }
-
-  typename UpbExtensionTrait<ExtensionType>::DefaultType default_val_;
-
-  friend struct PrivateAccess;
-};
-
-upb_ExtensionRegistry* GetUpbExtensions(
-    const ExtensionRegistry& extension_registry);
-
-}  // namespace internal
-
+// upb has a notion of an ExtensionRegistry. We expect most callers to use
+// the generated registry, which utilizes upb linker arrays. It is also possible
+// to call hpb funcs with hpb::ExtensionRegistry::empty_registry().
+//
+// Since google::protobuf::cpp only has the generated registry, hpb funcs
+// that use an extension registry must be invoked with
+// hpb::ExtensionRegistry::generated_registry(). Note that
+// hpb::ExtensionRegistry::empty_registry() does not even exist
+// for the cpp backend.
 class ExtensionRegistry {
  public:
-  explicit ExtensionRegistry(const upb::Arena& arena)
-      : registry_(upb_ExtensionRegistry_New(arena.ptr())) {}
+#if HPB_INTERNAL_BACKEND == HPB_INTERNAL_BACKEND_UPB
+  // The lifetimes of the ExtensionRegistry and the Arena are disparate, but
+  // the Arena must outlive the ExtensionRegistry.
+  explicit ExtensionRegistry(const hpb::Arena& arena)
+      : registry_(
+            upb_ExtensionRegistry_New(hpb::interop::upb::UnwrapArena(arena))) {}
 
   template <typename ExtensionIdentifier>
   void AddExtension(const ExtensionIdentifier& id) {
     if (registry_) {
       auto* extension = id.mini_table_ext();
-      bool success = upb_ExtensionRegistry_AddArray(registry_, &extension, 1);
-      if (!success) {
+      upb_ExtensionRegistryStatus status =
+          upb_ExtensionRegistry_AddArray(registry_, &extension, 1);
+      if (status != kUpb_ExtensionRegistryStatus_Ok) {
         registry_ = nullptr;
       }
     }
   }
+
+  static const ExtensionRegistry& empty_registry() {
+    static const ExtensionRegistry* r = new ExtensionRegistry();
+    return *r;
+  }
+#endif
 
   static const ExtensionRegistry& generated_registry() {
     static const ExtensionRegistry* r = NewGeneratedRegistry();
@@ -147,17 +65,26 @@ class ExtensionRegistry {
   }
 
  private:
+#if HPB_INTERNAL_BACKEND == HPB_INTERNAL_BACKEND_UPB
   friend upb_ExtensionRegistry* ::hpb::internal::GetUpbExtensions(
       const ExtensionRegistry& extension_registry);
   upb_ExtensionRegistry* registry_;
-
+#endif
   // TODO: b/379100963 - Introduce ShutdownHpbLibrary
   static const ExtensionRegistry* NewGeneratedRegistry() {
-    static upb::Arena* global_arena = new upb::Arena();
+#if HPB_INTERNAL_BACKEND == HPB_INTERNAL_BACKEND_UPB
+    static hpb::Arena* global_arena = new hpb::Arena();
     ExtensionRegistry* registry = new ExtensionRegistry(*global_arena);
     upb_ExtensionRegistry_AddAllLinkedExtensions(registry->registry_);
     return registry;
+#elif HPB_INTERNAL_BACKEND == HPB_INTERNAL_BACKEND_CPP
+    ExtensionRegistry* registry = new ExtensionRegistry();
+    return registry;
+#else
+#error "Unsupported hpb backend"
+#endif
   }
+  explicit ExtensionRegistry() = default;
 };
 
 template <typename T, typename Extendee, typename Extension,
@@ -195,87 +122,45 @@ void ClearExtension(
   ClearExtension(Ptr(message), id);
 }
 
-template <typename T, typename Extension,
-          typename = hpb::internal::EnableIfHpbClassThatHasExtensions<T>,
-          typename = hpb::internal::EnableIfMutableProto<T>>
-absl::Status SetExtension(
-    Ptr<T> message,
-    const ::hpb::internal::ExtensionIdentifier<T, Extension>& id,
-    const Extension& value) {
-  if constexpr (std::is_integral_v<Extension>) {
-    bool res = hpb::internal::UpbExtensionTrait<Extension>::kSetter(
-        hpb::interop::upb::GetMessage(message), id.mini_table_ext(), value,
-        hpb::interop::upb::GetArena(message));
-    return res ? absl::OkStatus() : MessageAllocationError();
-  } else {
-    static_assert(!std::is_const_v<T>);
-    auto* message_arena = hpb::interop::upb::GetArena(message);
-    return ::hpb::internal::SetExtension(hpb::interop::upb::GetMessage(message),
-                                         message_arena, id.mini_table_ext(),
-                                         hpb::interop::upb::GetMessage(&value));
-  }
+/**
+ * Sets the extension to provided value.
+ *
+ * `message` is the model and may be passed in as a `T*` or a `Ptr<T>`.
+ *
+ * `id` is the ExtensionIdentifier provided by hpb gencode.
+ *
+ * `value` is the value to set the extension to.
+ *  For message extension it can bind to `const Input&`, `Input&&`,
+ *  or `Ptr<const Input>`.
+ *  For rvalue references, if the arenas match, the extension is moved.
+ *  If the arenas differ, a deep copy is performed.
+ */
+template <int&... DeductionBarrier, typename T, typename Extension,
+          typename Input>
+auto SetExtension(
+    hpb::internal::PtrOrRawMutable<T> message,
+    const internal::ExtensionIdentifier<internal::RemovePtrT<T>, Extension>& id,
+    Input&& value)
+    -> decltype(internal::UpbExtensionTrait<Extension>::Set(
+        message, id, std::forward<Input>(value))) {
+  return internal::UpbExtensionTrait<Extension>::Set(
+      message, id, std::forward<Input>(value));
 }
 
 template <typename T, typename Extension,
           typename = hpb::internal::EnableIfHpbClassThatHasExtensions<T>,
           typename = hpb::internal::EnableIfMutableProto<T>>
-absl::Status SetExtension(
+void SetAliasExtension(
     Ptr<T> message,
     const ::hpb::internal::ExtensionIdentifier<T, Extension>& id,
     Ptr<Extension> value) {
   static_assert(!std::is_const_v<T>);
   auto* message_arena = hpb::interop::upb::GetArena(message);
-  return ::hpb::internal::SetExtension(hpb::interop::upb::GetMessage(message),
-                                       message_arena, id.mini_table_ext(),
-                                       hpb::interop::upb::GetMessage(value));
-}
-
-template <typename T, typename Extension,
-          typename = hpb::internal::EnableIfHpbClassThatHasExtensions<T>,
-          typename = hpb::internal::EnableIfMutableProto<T>>
-absl::Status SetExtension(
-    Ptr<T> message,
-    const ::hpb::internal::ExtensionIdentifier<T, Extension>& id,
-    Extension&& value) {
-  if constexpr (std::is_integral_v<Extension>) {
-    bool res = hpb::internal::UpbExtensionTrait<Extension>::kSetter(
-        hpb::interop::upb::GetMessage(message), id.mini_table_ext(), value,
-        hpb::interop::upb::GetArena(message));
-    return res ? absl::OkStatus() : MessageAllocationError();
-  } else {
-    Extension ext = std::forward<Extension>(value);
-    static_assert(!std::is_const_v<T>);
-    auto* message_arena = hpb::interop::upb::GetArena(message);
-    auto* extension_arena = hpb::interop::upb::GetArena(&ext);
-    return ::hpb::internal::MoveExtension(
-        hpb::interop::upb::GetMessage(message), message_arena,
-        id.mini_table_ext(), hpb::interop::upb::GetMessage(&ext),
-        extension_arena);
-  }
-}
-
-template <typename T, typename Extension,
-          typename = hpb::internal::EnableIfHpbClassThatHasExtensions<T>>
-absl::Status SetExtension(
-    T* message, const ::hpb::internal::ExtensionIdentifier<T, Extension>& id,
-    const Extension& value) {
-  return ::hpb::SetExtension(Ptr(message), id, value);
-}
-
-template <typename T, typename Extension,
-          typename = hpb::internal::EnableIfHpbClassThatHasExtensions<T>>
-absl::Status SetExtension(
-    T* message, const ::hpb::internal::ExtensionIdentifier<T, Extension>& id,
-    Extension&& value) {
-  return ::hpb::SetExtension(Ptr(message), id, std::forward<Extension>(value));
-}
-
-template <typename T, typename Extension,
-          typename = hpb::internal::EnableIfHpbClassThatHasExtensions<T>>
-absl::Status SetExtension(
-    T* message, const ::hpb::internal::ExtensionIdentifier<T, Extension>& id,
-    Ptr<Extension> value) {
-  return ::hpb::SetExtension(Ptr(message), id, value);
+  auto* extension_arena = hpb::interop::upb::GetArena(value);
+  return ::hpb::internal::SetAliasExtension(
+      hpb::interop::upb::GetMessage(message), message_arena,
+      id.mini_table_ext(), hpb::interop::upb::GetMessage(value),
+      extension_arena);
 }
 
 template <typename T, typename Extendee, typename Extension,
@@ -284,25 +169,7 @@ absl::StatusOr<typename internal::UpbExtensionTrait<Extension>::ReturnType>
 GetExtension(
     Ptr<T> message,
     const ::hpb::internal::ExtensionIdentifier<Extendee, Extension>& id) {
-  if constexpr (std::is_integral_v<Extension>) {
-    auto default_val = hpb::internal::PrivateAccess::GetDefaultValue(id);
-    absl::StatusOr<Extension> res =
-        hpb::internal::UpbExtensionTrait<Extension>::kGetter(
-            hpb::interop::upb::GetMessage(message), id.mini_table_ext(),
-            default_val);
-    return res;
-  } else {
-    upb_MessageValue value;
-    const bool ok = ::hpb::internal::GetOrPromoteExtension(
-        hpb::interop::upb::GetMessage(message), id.mini_table_ext(),
-        hpb::interop::upb::GetArena(message), &value);
-    if (!ok) {
-      return ExtensionNotFoundError(
-          upb_MiniTableExtension_Number(id.mini_table_ext()));
-    }
-    return Ptr<const Extension>(::hpb::interop::upb::MakeCHandle<Extension>(
-        (upb_Message*)value.msg_val, hpb::interop::upb::GetArena(message)));
-  }
+  return hpb::internal::UpbExtensionTrait<Extension>::Get(message, id);
 }
 
 template <typename T, typename Extendee, typename Extension,

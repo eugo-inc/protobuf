@@ -18,6 +18,7 @@
 #include "absl/container/btree_set.h"
 #include "absl/log/absl_check.h"
 #include "absl/log/absl_log.h"
+#include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "google/protobuf/compiler/code_generator.h"
@@ -33,6 +34,7 @@
 #include "google/protobuf/compiler/java/shared_code_generator.h"
 #include "google/protobuf/compiler/retention.h"
 #include "google/protobuf/compiler/versions.h"
+#include "google/protobuf/descriptor.h"
 #include "google/protobuf/descriptor.pb.h"
 #include "google/protobuf/descriptor_visitor.h"
 #include "google/protobuf/dynamic_message.h"
@@ -102,44 +104,34 @@ bool CollectExtensions(const Message& message, FieldDescriptorSet* extensions) {
   return true;
 }
 
-// Finds all extensions in the given message and its sub-messages.  If the
-// message contains unknown fields (which could be extensions), then those
-// extensions are defined in alternate_pool.
-// The message will be converted to a DynamicMessage backed by alternate_pool
-// in order to handle this case.
-void CollectExtensions(const FileDescriptorProto& file_proto,
-                       const DescriptorPool& alternate_pool,
-                       FieldDescriptorSet* extensions,
-                       const std::string& file_data) {
-  if (!CollectExtensions(file_proto, extensions)) {
-    // There are unknown fields in the file_proto, which are probably
-    // extensions. We need to parse the data into a dynamic message based on the
-    // builder-pool to find out all extensions.
-    const Descriptor* file_proto_desc = alternate_pool.FindMessageTypeByName(
-        file_proto.GetDescriptor()->full_name());
-    ABSL_CHECK(file_proto_desc)
-        << "Find unknown fields in FileDescriptorProto when building "
-        << file_proto.name()
-        << ". It's likely that those fields are custom options, however, "
-           "descriptor.proto is not in the transitive dependencies. "
-           "This normally should not happen. Please report a bug.";
-    DynamicMessageFactory factory;
-    std::unique_ptr<Message> dynamic_file_proto(
-        factory.GetPrototype(file_proto_desc)->New());
-    ABSL_CHECK(dynamic_file_proto.get() != nullptr);
-    ABSL_CHECK(dynamic_file_proto->ParseFromString(file_data));
+// Finds all extensions for custom options in the given file descriptor with the
+// builder pool which resolves Java features instead of the generated pool.
+void CollectExtensions(const FileDescriptor& file,
+                       FieldDescriptorSet* extensions) {
+  FileDescriptorProto file_proto = StripSourceRetentionOptions(file);
+  std::string file_data;
+  file_proto.SerializeToString(&file_data);
+  const Descriptor* file_proto_desc = file.pool()->FindMessageTypeByName(
+      file_proto.GetDescriptor()->full_name());
 
-    // Collect the extensions again from the dynamic message. There should be no
-    // more unknown fields this time, i.e. all the custom options should be
-    // parsed as extensions now.
-    extensions->clear();
-    ABSL_CHECK(CollectExtensions(*dynamic_file_proto, extensions))
-        << "Find unknown fields in FileDescriptorProto when building "
-        << file_proto.name()
-        << ". It's likely that those fields are custom options, however, "
-           "those options cannot be recognized in the builder pool. "
-           "This normally should not happen. Please report a bug.";
-  }
+  // descriptor.proto is not found in the builder pool, meaning there are no
+  // custom options.
+  if (file_proto_desc == nullptr) return;
+
+  DynamicMessageFactory factory;
+  std::unique_ptr<Message> dynamic_file_proto(
+      factory.GetPrototype(file_proto_desc)->New());
+  ABSL_CHECK(dynamic_file_proto.get() != nullptr);
+  ABSL_CHECK(dynamic_file_proto->ParseFromString(file_data));
+
+  // Collect the extensions again from the dynamic message.
+  extensions->clear();
+  ABSL_CHECK(CollectExtensions(*dynamic_file_proto, extensions))
+      << "Found unknown fields in FileDescriptorProto when building "
+      << file_proto.name()
+      << ". It's likely that those fields are custom options, however, "
+         "those options cannot be recognized in the builder pool. "
+         "This normally should not happen. Please report a bug.";
 }
 
 // Our static initialization methods can become very, very large.
@@ -215,12 +207,11 @@ bool FileGenerator::Validate(std::string* error) {
   // end up overwriting the outer class with one of the inner ones.
   if (name_resolver_->HasConflictingClassName(file_, classname_,
                                               NameEquality::EXACT_EQUAL)) {
-    error->assign(file_->name());
-    error->append(
+    *error = absl::StrCat(
+        file_->name(),
         ": Cannot generate Java output because the file's outer class name, "
-        "\"");
-    error->append(classname_);
-    error->append(
+        "\"",
+        classname_,
         "\", matches the name of one of the types declared inside it.  "
         "Please either rename the type or use the java_outer_classname "
         "option to specify a different outer class name for the .proto file.");
@@ -263,6 +254,26 @@ bool FileGenerator::Validate(std::string* error) {
            "https://github.com/protocolbuffers/protobuf/blob/main/java/"
            "lite.md";
   }
+  google::protobuf::internal::VisitDescriptors(*file_, [&](const EnumDescriptor& enm) {
+    if (CheckLargeEnum(&enm) && enm.is_closed()) {
+      absl::StrAppend(
+          error, enm.full_name(),
+          " is a closed enum and can not be used with the large_enum feature.  "
+          "Please migrate to an open enum first, which is a better fit for "
+          "extremely large enums.\n");
+    }
+    absl::Status status = ValidateNestInFileClassFeature(enm);
+    if (!status.ok()) {
+      absl::StrAppend(error, status.message());
+    }
+  });
+
+  google::protobuf::internal::VisitDescriptors(*file_, [&](const Descriptor& message) {
+    absl::Status status = ValidateNestInFileClassFeature(message);
+    if (!status.ok()) {
+      absl::StrAppend(error, status.message());
+    }
+  });
 
   return error->empty();
 }
@@ -349,17 +360,21 @@ void FileGenerator::Generate(io::Printer* printer) {
 
   // -----------------------------------------------------------------
 
-  if (!MultipleJavaFiles(file_, immutable_api_)) {
-    for (int i = 0; i < file_->enum_type_count(); i++) {
+  for (int i = 0; i < file_->enum_type_count(); i++) {
+    if (NestedInFileClass(*file_->enum_type(i), immutable_api_)) {
       generator_factory_->NewEnumGenerator(file_->enum_type(i))
           ->Generate(printer);
     }
-    for (int i = 0; i < file_->message_type_count(); i++) {
+  }
+  for (int i = 0; i < file_->message_type_count(); i++) {
+    if (NestedInFileClass(*file_->message_type(i), immutable_api_)) {
       message_generators_[i]->GenerateInterface(printer);
       message_generators_[i]->Generate(printer);
     }
-    if (HasGenericServices(file_, context_->EnforceLite())) {
-      for (int i = 0; i < file_->service_count(); i++) {
+  }
+  if (HasGenericServices(file_, context_->EnforceLite())) {
+    for (int i = 0; i < file_->service_count(); i++) {
+      if (NestedInFileClass(*file_->service(i), immutable_api_)) {
         std::unique_ptr<ServiceGenerator> generator(
             generator_factory_->NewServiceGenerator(file_->service(i)));
         generator->Generate(printer);
@@ -474,11 +489,8 @@ void FileGenerator::GenerateDescriptorInitializationCodeForImmutable(
   // To find those extensions, we need to parse the data into a dynamic message
   // of the FileDescriptor based on the builder-pool, then we can use
   // reflections to find all extension fields
-  FileDescriptorProto file_proto = StripSourceRetentionOptions(*file_);
-  std::string file_data;
-  file_proto.SerializeToString(&file_data);
   FieldDescriptorSet extensions;
-  CollectExtensions(file_proto, *file_->pool(), &extensions, file_data);
+  CollectExtensions(*file_, &extensions);
 
   if (options_.strip_nonfunctional_codegen) {
     // Skip feature extensions, which are a visible (but non-functional)
@@ -578,38 +590,39 @@ void FileGenerator::GenerateSiblings(
     const std::string& package_dir, GeneratorContext* context,
     std::vector<std::string>* file_list,
     std::vector<std::string>* annotation_list) {
-  if (MultipleJavaFiles(file_, immutable_api_)) {
-    for (int i = 0; i < file_->enum_type_count(); i++) {
-      std::unique_ptr<EnumGenerator> generator(
-          generator_factory_->NewEnumGenerator(file_->enum_type(i)));
-      GenerateSibling<EnumGenerator>(
-          package_dir, java_package_, file_->enum_type(i), context, file_list,
-          options_.annotate_code, annotation_list, "", generator.get(),
-          options_.opensource_runtime, &EnumGenerator::Generate);
-    }
-    for (int i = 0; i < file_->message_type_count(); i++) {
-      if (immutable_api_) {
-        GenerateSibling<MessageGenerator>(
-            package_dir, java_package_, file_->message_type(i), context,
-            file_list, options_.annotate_code, annotation_list, "OrBuilder",
-            message_generators_[i].get(), options_.opensource_runtime,
-            &MessageGenerator::GenerateInterface);
-      }
+  for (int i = 0; i < file_->enum_type_count(); i++) {
+    if (NestedInFileClass(*file_->enum_type(i), immutable_api_)) continue;
+    std::unique_ptr<EnumGenerator> generator(
+        generator_factory_->NewEnumGenerator(file_->enum_type(i)));
+    GenerateSibling<EnumGenerator>(
+        package_dir, java_package_, file_->enum_type(i), context, file_list,
+        options_.annotate_code, annotation_list, "", generator.get(),
+        options_.opensource_runtime, &EnumGenerator::Generate);
+  }
+  for (int i = 0; i < file_->message_type_count(); i++) {
+    if (NestedInFileClass(*file_->message_type(i), immutable_api_)) continue;
+    if (immutable_api_) {
       GenerateSibling<MessageGenerator>(
           package_dir, java_package_, file_->message_type(i), context,
-          file_list, options_.annotate_code, annotation_list, "",
+          file_list, options_.annotate_code, annotation_list, "OrBuilder",
           message_generators_[i].get(), options_.opensource_runtime,
-          &MessageGenerator::Generate);
+          &MessageGenerator::GenerateInterface);
     }
-    if (HasGenericServices(file_, context_->EnforceLite())) {
-      for (int i = 0; i < file_->service_count(); i++) {
-        std::unique_ptr<ServiceGenerator> generator(
-            generator_factory_->NewServiceGenerator(file_->service(i)));
-        GenerateSibling<ServiceGenerator>(
-            package_dir, java_package_, file_->service(i), context, file_list,
-            options_.annotate_code, annotation_list, "", generator.get(),
-            options_.opensource_runtime, &ServiceGenerator::Generate);
-      }
+    GenerateSibling<MessageGenerator>(
+        package_dir, java_package_, file_->message_type(i), context, file_list,
+        options_.annotate_code, annotation_list, "",
+        message_generators_[i].get(), options_.opensource_runtime,
+        &MessageGenerator::Generate);
+  }
+  if (HasGenericServices(file_, context_->EnforceLite())) {
+    for (int i = 0; i < file_->service_count(); i++) {
+      if (NestedInFileClass(*file_->service(i), immutable_api_)) continue;
+      std::unique_ptr<ServiceGenerator> generator(
+          generator_factory_->NewServiceGenerator(file_->service(i)));
+      GenerateSibling<ServiceGenerator>(
+          package_dir, java_package_, file_->service(i), context, file_list,
+          options_.annotate_code, annotation_list, "", generator.get(),
+          options_.opensource_runtime, &ServiceGenerator::Generate);
     }
   }
 }

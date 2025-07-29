@@ -32,6 +32,7 @@
 #include "google/protobuf/test_util2.h"
 #include "google/protobuf/text_format.h"
 #include "google/protobuf/unittest.pb.h"
+#include "google/protobuf/unittest_import.pb.h"
 #include "google/protobuf/unittest_mset.pb.h"
 #include "google/protobuf/unittest_mset_wire_format.pb.h"
 #include "google/protobuf/unittest_proto3_extensions.pb.h"
@@ -52,7 +53,6 @@ extern bool fully_verify_message_sets_opt_out;
 
 namespace {
 
-using ::google::protobuf::internal::DownCast;
 using TestUtil::EqualsToSerialized;
 
 // This test closely mirrors google/protobuf/compiler/cpp/unittest.cc
@@ -648,7 +648,7 @@ TEST(ExtensionSetTest, Parsing) {
   TestUtil::SetAllFields(&source);
   source.SerializeToString(&data);
   EXPECT_TRUE(destination.ParseFromString(data));
-  TestUtil::SetOneofFields(&destination);
+  TestUtil::SetOneofFieldsExtensions(&destination);
   TestUtil::ExpectAllExtensionsSet(destination);
 }
 
@@ -685,7 +685,7 @@ TEST(ExtensionSetTest, PackedToUnpackedParsing) {
   // Make sure we can add extensions.
   destination.AddExtension(unittest::unpacked_int32_extension, 1);
   destination.AddExtension(unittest::unpacked_enum_extension,
-                           protobuf_unittest::FOREIGN_BAR);
+                           proto2_unittest::FOREIGN_BAR);
 }
 
 TEST(ExtensionSetTest, UnpackedToPackedParsing) {
@@ -709,7 +709,7 @@ TEST(ExtensionSetTest, UnpackedToPackedParsing) {
   // Make sure we can add extensions.
   destination.AddExtension(unittest::packed_int32_extension, 1);
   destination.AddExtension(unittest::packed_enum_extension,
-                           protobuf_unittest::FOREIGN_BAR);
+                           proto2_unittest::FOREIGN_BAR);
 }
 
 TEST(ExtensionSetTest, IsInitialized) {
@@ -1414,7 +1414,7 @@ TEST(ExtensionSetTest, BoolExtension) {
   unittest::TestAllExtensions msg;
   uint8_t wire_bytes[2] = {13 * 8, 42 /* out of bounds payload for bool */};
   EXPECT_TRUE(msg.ParseFromArray(wire_bytes, 2));
-  EXPECT_TRUE(msg.GetExtension(protobuf_unittest::optional_bool_extension));
+  EXPECT_TRUE(msg.GetExtension(proto2_unittest::optional_bool_extension));
 }
 
 TEST(ExtensionSetTest, ConstInit) {
@@ -1463,5 +1463,13 @@ TEST(ExtensionSetTest, Descriptor) {
 }  // namespace internal
 }  // namespace protobuf
 }  // namespace google
+
+// Some code thunks to allow easy inspection of the generated asm via `lldb`.
+auto CodegenGetExtensionInt32(
+    const google::protobuf::unittest::TestAllExtensions& message) {
+  return message.GetExtension(google::protobuf::unittest::optional_int32_extension);
+}
+static int odr [[maybe_unused]] =
+    (::google::protobuf::internal::StrongPointer(&CodegenGetExtensionInt32), 0);
 
 #include "google/protobuf/port_undef.inc"

@@ -55,60 +55,26 @@
 namespace google {
 namespace protobuf {
 
-TEST(MESSAGE_TEST_NAME, AllSetMethodsOnStringField) {
+TEST(MESSAGE_TEST_NAME, LegacySetMethodsOnStringField) {
   UNITTEST::TestAllTypes msg;
 
-  msg.set_optional_string(absl::string_view("Abcdef"));
-  EXPECT_EQ(msg.optional_string(), "Abcdef");
-
-  msg.set_optional_string("Asciiz");
-  EXPECT_EQ(msg.optional_string(), "Asciiz");
-
-  msg.set_optional_string("Length delimited", 6);
-  EXPECT_EQ(msg.optional_string(), "Length");
-
-  std::string value = "std::string value 1";
-  msg.set_optional_string(value);
-  EXPECT_EQ(msg.optional_string(), "std::string value 1");
-
-  value = "std::string value 2";
-  msg.set_optional_string(std::cref(value));
-  EXPECT_EQ(msg.optional_string(), "std::string value 2");
-
-  value = "std::string value 3";
-  msg.set_optional_string(std::move(value));
-  EXPECT_EQ(msg.optional_string(), "std::string value 3");
+  msg.set_optional_string("std::string value 4", 5);
+  EXPECT_EQ(msg.optional_string(), "std::");
 }
 
-
-TEST(MESSAGE_TEST_NAME, AllAddMethodsOnRepeatedStringField) {
+TEST(MESSAGE_TEST_NAME, LegacySetMethodsOnRepeatedStringField) {
   UNITTEST::TestAllTypes msg;
 
-  msg.add_repeated_string(absl::string_view("Abcdef"));
-  EXPECT_EQ(msg.repeated_string(0), "Abcdef");
-  msg.clear_repeated_string();
+  msg.add_repeated_string("");
+  msg.set_repeated_string(0, "std::string value 4", 5);
+  EXPECT_EQ(msg.repeated_string(0), "std::");
+}
 
-  msg.add_repeated_string("Asciiz");
-  EXPECT_EQ(msg.repeated_string(0), "Asciiz");
-  msg.clear_repeated_string();
+TEST(MESSAGE_TEST_NAME, LegacyAddMethodsOnRepeatedStringField) {
+  UNITTEST::TestAllTypes msg;
 
-  msg.add_repeated_string("Length delimited", 6);
-  EXPECT_EQ(msg.repeated_string(0), "Length");
-  msg.clear_repeated_string();
-
-  std::string value = "std::string value 1";
-  msg.add_repeated_string(value);
-  EXPECT_EQ(msg.repeated_string(0), "std::string value 1");
-  msg.clear_repeated_string();
-
-  value = "std::string value 2";
-  msg.add_repeated_string(std::cref(value));
-  EXPECT_EQ(msg.repeated_string(0), "std::string value 2");
-  msg.clear_repeated_string();
-
-  value = "std::string value 3";
-  msg.add_repeated_string(std::move(value));
-  EXPECT_EQ(msg.repeated_string(0), "std::string value 3");
+  msg.add_repeated_string("std::string value 4", 5);
+  EXPECT_EQ(msg.repeated_string(0), "std::");
   msg.clear_repeated_string();
 }
 
@@ -137,7 +103,11 @@ TEST(MESSAGE_TEST_NAME, TestRegressionInlinedStringAuxIdxMismatchOnFastParser) {
     // The aux_idx points to the inlined_string_idx and not the actual aux_idx.
     EXPECT_EQ(table->fast_entry(1)->bits.aux_idx(), 1);
     // optional InlinedStringIdxRegressionProto sub = 2;
-    EXPECT_EQ(table->fast_entry(2)->bits.aux_idx(), 1);
+    if ((table->field_entries()[1].type_card &
+         internal::field_layout::kSplitMask) == 0) {
+      EXPECT_NE(table->fast_entry(2)->bits.aux_idx(),
+                internal::kInlinedStringAuxIdx);
+    }
     // optional string str2 = 3;
     // The aux_idx points to the inlined_string_idx and not the actual aux_idx.
     EXPECT_EQ(table->fast_entry(3)->bits.aux_idx(), 2);

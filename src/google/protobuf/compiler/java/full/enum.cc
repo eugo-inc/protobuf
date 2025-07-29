@@ -61,6 +61,19 @@ void EnumNonLiteGenerator::Generate(io::Printer* printer) {
   WriteEnumDocComment(printer, descriptor_, context_->options());
   MaybePrintGeneratedAnnotation(context_, printer, descriptor_, immutable_api_);
 
+  if (CheckLargeEnum(descriptor_)) {
+    std::vector<
+        std::pair<const EnumValueDescriptor*, const EnumValueDescriptor*>>
+        alias_pairs;
+    alias_pairs.reserve(aliases_.size());
+    for (const Alias& alias : aliases_) {
+      alias_pairs.emplace_back(alias.value, alias.canonical_value);
+    }
+
+    GenerateLarge(printer, descriptor_, canonical_values_, alias_pairs,
+                  immutable_api_, context_, name_resolver_);
+    return;
+  }
 
   if (!context_->options().opensource_runtime) {
     printer->Print("@com.google.protobuf.Internal.ProtoNonnullApi\n");
@@ -85,7 +98,7 @@ void EnumNonLiteGenerator::Generate(io::Printer* printer) {
 
   for (const EnumValueDescriptor* value : canonical_values_) {
     absl::flat_hash_map<absl::string_view, std::string> vars;
-    vars["name"] = value->name();
+    vars["name"] = std::string(value->name());
     vars["index"] = absl::StrCat(value->index());
     vars["number"] = absl::StrCat(value->number());
     WriteEnumValueDocComment(printer, value, context_->options());
@@ -124,9 +137,9 @@ void EnumNonLiteGenerator::Generate(io::Printer* printer) {
 
   for (const Alias& alias : aliases_) {
     absl::flat_hash_map<absl::string_view, std::string> vars;
-    vars["classname"] = descriptor_->name();
-    vars["name"] = alias.value->name();
-    vars["canonical_name"] = alias.canonical_value->name();
+    vars["classname"] = std::string(descriptor_->name());
+    vars["name"] = std::string(alias.value->name());
+    vars["canonical_name"] = std::string(alias.canonical_value->name());
     WriteEnumValueDocComment(printer, alias.value, context_->options());
     printer->Print(
         vars, "public static final $classname$ $name$ = $canonical_name$;\n");
@@ -135,7 +148,7 @@ void EnumNonLiteGenerator::Generate(io::Printer* printer) {
 
   for (int i = 0; i < descriptor_->value_count(); i++) {
     absl::flat_hash_map<absl::string_view, std::string> vars;
-    vars["name"] = descriptor_->value(i)->name();
+    vars["name"] = std::string(descriptor_->value(i)->name());
     vars["number"] = absl::StrCat(descriptor_->value(i)->number());
     vars["{"] = "";
     vars["}"] = "";
@@ -263,7 +276,7 @@ void EnumNonLiteGenerator::Generate(io::Printer* printer) {
         "    getDescriptorForType() {\n"
         "  return getDescriptor();\n"
         "}\n"
-        "public static final com.google.protobuf.Descriptors.EnumDescriptor\n"
+        "public static com.google.protobuf.Descriptors.EnumDescriptor\n"
         "    getDescriptor() {\n",
         "index_text", index_text);
 

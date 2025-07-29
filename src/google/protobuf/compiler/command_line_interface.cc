@@ -59,7 +59,6 @@
 #include "absl/log/globals.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "absl/strings/ascii.h"
 #include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
@@ -93,6 +92,7 @@
 #endif
 
 #include "google/protobuf/stubs/platform_macros.h"
+#include "google/protobuf/compiler/notices.h"
 
 // Must be included last.
 #include "google/protobuf/port_def.inc"
@@ -121,19 +121,29 @@ using google::protobuf::io::win32::setmode;
 using google::protobuf::io::win32::write;
 #endif
 
-static const char* kDefaultDirectDependenciesViolationMsg =
+constexpr absl::string_view kDefaultDirectDependenciesViolationMsg =
     "File is imported but not declared in --direct_dependencies: %s";
 
-// Returns true if the text looks like a Windows-style absolute path, starting
-// with a drive letter.  Example:  "C:\foo".  TODO:  Share this with
-// copy in importer.cc?
-static bool IsWindowsAbsolutePath(const std::string& text) {
-#if defined(_WIN32) || defined(__CYGWIN__)
+constexpr absl::string_view kDefaultOptionDependenciesViolationMsg =
+    "File is option imported but not declared in --option_dependencies: %s";
+
+// Returns true if the text begins with a Windows-style absolute path, starting
+// with a drive letter.  Example:  "C:\foo".
+static bool StartsWithWindowsAbsolutePath(absl::string_view text) {
+#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MSYS__) || \
+    defined(__MSYS2__)
   return text.size() >= 3 && text[1] == ':' && absl::ascii_isalpha(text[0]) &&
-         (text[2] == '/' || text[2] == '\\') && text.find_last_of(':') == 1;
+         (text[2] == '/' || text[2] == '\\');
 #else
   return false;
 #endif
+}
+
+// Returns true if the text looks like a single Windows-style absolute path,
+// starting with a drive letter.  Example:  "C:\foo".  TODO:  Share this
+// with copy in importer.cc?
+static bool IsWindowsAbsolutePath(absl::string_view text) {
+  return StartsWithWindowsAbsolutePath(text) && text.find_last_of(':') == 1;
 }
 
 void SetFdToTextMode(int fd) {
@@ -951,7 +961,9 @@ const char* const CommandLineInterface::kPathSeparator = ":";
 
 CommandLineInterface::CommandLineInterface()
     : direct_dependencies_violation_msg_(
-          kDefaultDirectDependenciesViolationMsg) {}
+          kDefaultDirectDependenciesViolationMsg),
+      option_dependencies_violation_msg_(
+          kDefaultOptionDependenciesViolationMsg) {}
 
 CommandLineInterface::~CommandLineInterface() = default;
 
@@ -1248,6 +1260,8 @@ int CommandLineInterface::Run(int argc, const char* const argv[]) {
   }
 
   descriptor_pool->EnforceWeakDependencies(true);
+  descriptor_pool->EnforceOptionDependencies(true);
+  descriptor_pool->EnforceNamingStyle(true);
 
   if (!SetupFeatureResolution(*descriptor_pool)) {
     return EXIT_FAILURE;
@@ -1497,7 +1511,6 @@ PopulateSingleSimpleDescriptorDatabase(const std::string& descriptor_set_name) {
 
 }  // namespace
 
-
 bool CommandLineInterface::VerifyInputFilesInDescriptors(
     DescriptorDatabase* database) {
   for (const auto& input_file : input_files_) {
@@ -1516,7 +1529,6 @@ bool CommandLineInterface::VerifyInputFilesInDescriptors(
                 << std::endl;
       return false;
     }
-
   }
   return true;
 }
@@ -1619,7 +1631,6 @@ bool CommandLineInterface::ParseInputFiles(
       break;
     }
 
-
     // Enforce --direct_dependencies
     if (direct_dependencies_explicitly_set_) {
       bool indirect_imports = false;
@@ -1639,6 +1650,26 @@ bool CommandLineInterface::ParseInputFiles(
         break;
       }
     }
+
+    // Enforce --option_dependencies.
+    if (option_dependencies_explicitly_set_) {
+      bool indirect_option_imports = false;
+      for (int i = 0; i < parsed_file->option_dependency_count(); ++i) {
+        if (option_dependencies_.find(parsed_file->option_dependency_name(i)) ==
+            option_dependencies_.end()) {
+          indirect_option_imports = true;
+          std::cerr << parsed_file->name() << ": "
+                    << absl::StrReplaceAll(
+                           option_dependencies_violation_msg_,
+                           {{"%s", parsed_file->option_dependency_name(i)}})
+                    << std::endl;
+        }
+      }
+      if (indirect_option_imports) {
+        result = false;
+        break;
+      }
+    }
   }
   descriptor_pool->ClearDirectInputFiles();
   return result;
@@ -1651,7 +1682,11 @@ void CommandLineInterface::Clear() {
   proto_path_.clear();
   input_files_.clear();
   direct_dependencies_.clear();
-  direct_dependencies_violation_msg_ = kDefaultDirectDependenciesViolationMsg;
+  direct_dependencies_violation_msg_ =
+      std::string(kDefaultDirectDependenciesViolationMsg);
+  option_dependencies_.clear();
+  option_dependencies_violation_msg_ =
+      std::string(kDefaultOptionDependenciesViolationMsg);
   output_directives_.clear();
   codec_type_.clear();
   descriptor_set_in_names_.clear();
@@ -1763,7 +1798,7 @@ bool CommandLineInterface::MakeInputsBeProtoPathRelative(
 bool CommandLineInterface::ExpandArgumentFile(
     const char* file, std::vector<std::string>* arguments) {
 // On windows to force ifstream to handle proper utr-8, we need to convert to
-// proper supported utf8 wstring. If we dont then the file can't be opened.
+// proper supported utf8 wstring. If we don't then the file can't be opened.
 #ifdef _MSC_VER
   // Convert the file name to wide chars.
   int size = MultiByteToWideChar(CP_UTF8, 0, file, strlen(file), nullptr, 0);
@@ -2004,6 +2039,7 @@ bool CommandLineInterface::ParseArgument(const char* arg, std::string* name,
       *name == "--include_imports" || *name == "--include_source_info" ||
       *name == "--retain_options" || *name == "--version" ||
       *name == "--decode_raw" ||
+      *name == "--notices" ||
       *name == "--experimental_editions" ||
       *name == "--print_free_field_numbers" ||
       *name == "--experimental_allow_proto3_optional" ||
@@ -2062,12 +2098,17 @@ CommandLineInterface::InterpretArgument(const std::string& name,
 #endif  // _WIN32
 
   } else if (name == "-I" || name == "--proto_path") {
+    // If we have something that starts with a Windows absolute path,
+    // then the only path separator that makes sense is the semicolon.
+    const char* separator = StartsWithWindowsAbsolutePath(value)
+                                ? ";"
+                                : CommandLineInterface::kPathSeparator;
+
     // Java's -classpath (and some other languages) delimits path components
     // with colons.  Let's accept that syntax too just to make things more
     // intuitive.
-    std::vector<std::string> parts = absl::StrSplit(
-        value, absl::ByAnyChar(CommandLineInterface::kPathSeparator),
-        absl::SkipEmpty());
+    std::vector<std::string> parts =
+        absl::StrSplit(value, absl::ByAnyChar(separator), absl::SkipEmpty());
 
     for (size_t i = 0; i < parts.size(); ++i) {
       std::string virtual_path;
@@ -2127,7 +2168,23 @@ CommandLineInterface::InterpretArgument(const std::string& name,
 
   } else if (name == "--direct_dependencies_violation_msg") {
     direct_dependencies_violation_msg_ = value;
+  } else if (name == "--option_dependencies") {
+    if (option_dependencies_explicitly_set_) {
+      std::cerr << name
+                << " may only be passed once. To specify multiple "
+                   "option dependencies, pass them all as a single "
+                   "parameter separated by ':'."
+                << std::endl;
+      return PARSE_ARGUMENT_FAIL;
+    }
 
+    option_dependencies_explicitly_set_ = true;
+    std::vector<std::string> direct =
+        absl::StrSplit(value, ':', absl::SkipEmpty());
+    ABSL_DCHECK(option_dependencies_.empty());
+    option_dependencies_.insert(direct.begin(), direct.end());
+  } else if (name == "--option_dependencies_violation_msg") {
+    option_dependencies_violation_msg_ = value;
   } else if (name == "--descriptor_set_in") {
     if (!descriptor_set_in_names_.empty()) {
       std::cerr << name
@@ -2222,8 +2279,6 @@ CommandLineInterface::InterpretArgument(const std::string& name,
 
   } else if (name == "--disallow_services") {
     disallow_services_ = true;
-
-
   } else if (name == "--experimental_allow_proto3_optional") {
     // Flag is no longer observed, but we allow it for backward compat.
   } else if (name == "--encode" || name == "--decode" ||
@@ -2333,6 +2388,9 @@ CommandLineInterface::InterpretArgument(const std::string& name,
 #else
     ::setenv(io::Printer::kProtocCodegenTrace.data(), "yes", 0);
 #endif
+  } else if (name == "--notices") {
+    std::cout << notices_text << std::endl;
+    return PARSE_ARGUMENT_DONE_AND_EXIT;
   } else if (name == "--experimental_editions") {
     // If you're reading this, you're probably wondering what
     // --experimental_editions is for and thinking of turning it on. This is an
@@ -2507,7 +2565,15 @@ Parse PROTO_FILES and generate output based on the options given:
                               are counted as occupied fields numbers.
   --enable_codegen_trace      Enables tracing which parts of protoc are
                               responsible for what codegen output. Not supported
-                              by all backends or on all platforms.)";
+                              by all backends or on all platforms.
+  --direct_dependencies       A colon delimited list of imports that are
+                              allowed to be used in "import"
+                              declarations, when explictily provided.
+  --option_dependencies       A colon delimited list of imports that are
+                              allowed to be used in "import option"
+                              declarations, when explicitly provided.)";
+  std::cout << R"(
+  --notices                   Show notice file and exit.)";
   if (!plugin_prefix_.empty()) {
     std::cout << R"(
   --plugin=EXECUTABLE         Specifies a plugin executable to use.

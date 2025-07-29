@@ -261,7 +261,7 @@ bool CodedInputStream::ReadString(std::string* buffer, int size) {
     if (z.second) {
       // Oddly enough, memcpy() requires its first two args to be non-NULL even
       // if we copy 0 bytes.  So, we have ensured that z.first is non-NULL here.
-      ABSL_DCHECK(z.first != NULL);
+      ABSL_DCHECK(z.first != nullptr);
       memcpy(z.first, buffer_, size);
       Advance(size);
     }
@@ -421,8 +421,8 @@ const uint8_t* DecodeVarint64KnownSize(const uint8_t* buffer, uint64_t* value) {
 // so returning a pair is costless.
 PROTOBUF_ALWAYS_INLINE
 ::std::pair<bool, const uint8_t*> ReadVarint32FromArray(uint32_t first_byte,
-                                                      const uint8_t* buffer,
-                                                      uint32_t* value);
+                                                        const uint8_t* buffer,
+                                                        uint32_t* value);
 inline ::std::pair<bool, const uint8_t*> ReadVarint32FromArray(
     uint32_t first_byte, const uint8_t* buffer, uint32_t* value) {
   // Fast path:  We have enough bytes left in the buffer to guarantee that
@@ -715,8 +715,8 @@ bool CodedInputStream::Refresh() {
     RecomputeBufferLimits();
     return true;
   } else {
-    buffer_ = NULL;
-    buffer_end_ = NULL;
+    buffer_ = nullptr;
+    buffer_end_ = nullptr;
     return false;
   }
 }
@@ -821,7 +821,7 @@ bool EpsCopyOutputStream::GetDirectBufferPointer(void** data, int* size,
 }
 
 uint8_t* EpsCopyOutputStream::GetDirectBufferForNBytesAndAdvance(int size,
-                                                               uint8_t** pp) {
+                                                                 uint8_t** pp) {
   if (had_error_) {
     *pp = buffer_;
     return nullptr;
@@ -892,7 +892,7 @@ uint8_t* EpsCopyOutputStream::EnsureSpaceFallback(uint8_t* ptr) {
 }
 
 uint8_t* EpsCopyOutputStream::WriteRawFallback(const void* data, int size,
-                                             uint8_t* ptr) {
+                                               uint8_t* ptr) {
   int s = GetSize(ptr);
   while (s < size) {
     std::memcpy(ptr, data, s);
@@ -906,7 +906,7 @@ uint8_t* EpsCopyOutputStream::WriteRawFallback(const void* data, int size,
 }
 
 uint8_t* EpsCopyOutputStream::WriteAliasedRaw(const void* data, int size,
-                                            uint8_t* ptr) {
+                                              uint8_t* ptr) {
   if (size < GetSize(ptr)
   ) {
     return WriteRaw(data, size, ptr);
@@ -919,7 +919,7 @@ uint8_t* EpsCopyOutputStream::WriteAliasedRaw(const void* data, int size,
 
 #ifndef ABSL_IS_LITTLE_ENDIAN
 uint8_t* EpsCopyOutputStream::WriteRawLittleEndian32(const void* data, int size,
-                                                   uint8_t* ptr) {
+                                                     uint8_t* ptr) {
   auto p = static_cast<const uint8_t*>(data);
   auto end = p + size;
   while (end - p >= kSlopBytes) {
@@ -942,7 +942,7 @@ uint8_t* EpsCopyOutputStream::WriteRawLittleEndian32(const void* data, int size,
 }
 
 uint8_t* EpsCopyOutputStream::WriteRawLittleEndian64(const void* data, int size,
-                                                   uint8_t* ptr) {
+                                                     uint8_t* ptr) {
   auto p = static_cast<const uint8_t*>(data);
   auto end = p + size;
   while (end - p >= kSlopBytes) {
@@ -986,32 +986,25 @@ uint8_t* EpsCopyOutputStream::WriteCord(const absl::Cord& cord, uint8_t* ptr) {
   }
 }
 
-uint8_t* EpsCopyOutputStream::WriteStringMaybeAliasedOutline(uint32_t num,
-                                                           const std::string& s,
-                                                           uint8_t* ptr) {
+uint8_t* EpsCopyOutputStream::WriteStringMaybeAliasedOutline(
+    uint32_t num, absl::string_view s, uint8_t* ptr) {
   ptr = EnsureSpace(ptr);
   uint32_t size = s.size();
   ptr = WriteLengthDelim(num, size, ptr);
   return WriteRawMaybeAliased(s.data(), size, ptr);
 }
 
-uint8_t* EpsCopyOutputStream::WriteStringOutline(uint32_t num, const std::string& s,
-                                               uint8_t* ptr) {
+uint8_t* EpsCopyOutputStream::WriteStringOutline(uint32_t num,
+                                                 absl::string_view s,
+                                                 uint8_t* ptr) {
   ptr = EnsureSpace(ptr);
   uint32_t size = s.size();
   ptr = WriteLengthDelim(num, size, ptr);
   return WriteRaw(s.data(), size, ptr);
 }
 
-uint8_t* EpsCopyOutputStream::WriteStringOutline(uint32_t num, absl::string_view s,
+uint8_t* EpsCopyOutputStream::WriteCordOutline(const absl::Cord& c,
                                                uint8_t* ptr) {
-  ptr = EnsureSpace(ptr);
-  uint32_t size = s.size();
-  ptr = WriteLengthDelim(num, size, ptr);
-  return WriteRaw(s.data(), size, ptr);
-}
-
-uint8_t* EpsCopyOutputStream::WriteCordOutline(const absl::Cord& c, uint8_t* ptr) {
   uint32_t size = c.size();
   ptr = UnsafeWriteSize(size, ptr);
   return WriteCord(c, ptr);
@@ -1028,8 +1021,8 @@ uint8_t* CodedOutputStream::WriteCordToArray(const absl::Cord& cord,
 }
 
 
-uint8_t* CodedOutputStream::WriteStringWithSizeToArray(const std::string& str,
-                                                     uint8_t* target) {
+uint8_t* CodedOutputStream::WriteStringWithSizeToArray(absl::string_view str,
+                                                       uint8_t* target) {
   ABSL_DCHECK_LE(str.size(), std::numeric_limits<uint32_t>::max());
   target = WriteVarint32ToArray(str.size(), target);
   return WriteStringToArray(str, target);

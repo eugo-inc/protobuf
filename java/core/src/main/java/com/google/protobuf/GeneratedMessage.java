@@ -38,8 +38,14 @@ import java.util.TreeMap;
 
 /**
  * All generated protocol message classes extend this class. This class implements most of the
- * Message and Builder interfaces using Java reflection. Users can ignore this class and pretend
- * that generated messages implement the Message interface directly.
+ * Message and Builder interfaces using Java reflection.
+ *
+ * <p>Users should generally ignore this class and use the Message interface instead.
+ *
+ * <p>This class is intended to only be extended by protoc created gencode. It is not intended or
+ * supported to extend this class, and any protected methods may be removed without it being
+ * considered a breaking change as long as all supported gencode does not depend on the changed
+ * methods.
  *
  * @author kenton@google.com Kenton Varda
  */
@@ -528,8 +534,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     @Override
     public BuilderT clone() {
       BuilderT builder = (BuilderT) getDefaultInstanceForType().newBuilderForType();
-      builder.mergeFrom(buildPartial());
-      return builder;
+      return builder.mergeFrom(buildPartial());
     }
 
     /**
@@ -944,6 +949,14 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       this.extensions = builder.buildExtensions();
     }
 
+    /**
+     * Returns an iterator over the set extensions lazily wrapped in {@link FieldEntry} objects.
+     * Order is unspecified.
+     */
+    public final Iterator<FieldEntry> extensionsIterator() {
+      return new FieldEntryIterator(extensions);
+    }
+
     private void verifyExtensionContainingType(final Extension<? extends MessageT, ?> extension) {
       if (extension.getDescriptor().getContainingType() != getDescriptorForType()) {
         // This can only happen if someone uses unchecked operations.
@@ -986,17 +999,26 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       verifyExtensionContainingType(extension);
       FieldDescriptor descriptor = extension.getDescriptor();
       final Object value = extensions.getField(descriptor);
+      T result = null;
       if (value == null) {
         if (descriptor.isRepeated()) {
-          return (T) ProtobufArrayList.emptyList();
+          result = (T) ProtobufArrayList.emptyList();
         } else if (descriptor.getJavaType() == FieldDescriptor.JavaType.MESSAGE) {
-          return (T) extension.getMessageDefaultInstance();
+          result = (T) extension.getMessageDefaultInstance();
         } else {
-          return (T) extension.fromReflectionType(descriptor.getDefaultValue());
+          result = (T) extension.fromReflectionType(descriptor.getDefaultValue());
         }
       } else {
-        return (T) extension.fromReflectionType(value);
+        result = (T) extension.fromReflectionType(value);
       }
+
+      // If the lazy field is corrupted, we need to invalidate the memoized size in case the
+      // corrupted message data was replaced with an empty ByteString and yet a previous serialized
+      // size was memoized.
+      if (extensions.lazyFieldCorrupted(descriptor)) {
+        setMemoizedSerializedSize(-1);
+      }
+      return result;
     }
 
     /** Get one element of a repeated extension. */
@@ -1098,7 +1120,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     /**
      * For compatibility with older gencode.
      *
-     * <p> TODO Remove this in the next breaking release.
+     * <p>TODO Remove this in the next breaking release.
      *
      * @deprecated Use {@link newExtensionSerializer()} instead.
      */
@@ -1216,6 +1238,45 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     private void verifyContainingType(final FieldDescriptor field) {
       if (field.getContainingType() != getDescriptorForType()) {
         throw new IllegalArgumentException("FieldDescriptor does not match message type.");
+      }
+    }
+
+    /** A wrapper for a field descriptor and its value. */
+    public static final class FieldEntry {
+      private final FieldDescriptor descriptor;
+      private final Object value;
+
+      public FieldDescriptor getDescriptor() {
+        return descriptor;
+      }
+
+      public Object getValue() {
+        return value;
+      }
+
+      FieldEntry(FieldDescriptor descriptor, Object value) {
+        this.descriptor = descriptor;
+        this.value = value;
+      }
+    }
+
+    private static final class FieldEntryIterator implements Iterator<FieldEntry> {
+      private final Iterator<Map.Entry<FieldDescriptor, Object>> iter;
+
+      FieldEntryIterator(FieldSet<FieldDescriptor> fieldSet) {
+        this.iter = fieldSet.iterator();
+      }
+
+      @Override
+      public final boolean hasNext() {
+        return iter.hasNext();
+      }
+
+      @Override
+      public final FieldEntry next() {
+        // Just let the inner iterator throw the NoSuchElementException.
+        Map.Entry<FieldDescriptor, Object> entry = iter.next();
+        return new FieldEntry(entry.getKey(), entry.getValue());
       }
     }
   }
@@ -2033,6 +2094,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
      * @param builderClass The builder type.
      * @return this
      */
+    @CanIgnoreReturnValue
     public FieldAccessorTable ensureFieldAccessorsInitialized(
         Class<? extends GeneratedMessage> messageClass, Class<? extends Builder<?>> builderClass) {
       if (initialized) {
@@ -2058,8 +2120,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
                 fields[i] = new MapFieldAccessor(field, messageClass);
               } else {
                 fields[i] =
-                    new RepeatedMessageFieldAccessor(
-                        field, camelCaseNames[i], messageClass, builderClass);
+                    new RepeatedMessageFieldAccessor(camelCaseNames[i], messageClass, builderClass);
               }
             } else if (field.getJavaType() == FieldDescriptor.JavaType.ENUM) {
               fields[i] =
@@ -2390,8 +2451,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
           final Class<? extends GeneratedMessage> messageClass,
           final Class<? extends Builder<?>> builderClass,
           final String containingOneofCamelCaseName) {
-        isOneofField =
-            descriptor.getRealContainingOneof() != null;
+        isOneofField = descriptor.getRealContainingOneof() != null;
         hasHasMethod = descriptor.hasPresence();
         ReflectionInvoker reflectionInvoker =
             new ReflectionInvoker(
@@ -3117,7 +3177,6 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
 
     private static final class RepeatedMessageFieldAccessor extends RepeatedFieldAccessor {
       RepeatedMessageFieldAccessor(
-          final FieldDescriptor descriptor,
           final String camelCaseName,
           final Class<? extends GeneratedMessage> messageClass,
           final Class<? extends Builder<?>> builderClass) {
@@ -3182,6 +3241,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
   /**
    * Checks that the {@link Extension} is non-Lite and returns it as a {@link GeneratedExtension}.
    */
+  @SuppressWarnings("unchecked")
   private static <MessageT extends ExtendableMessage<MessageT>, T>
       Extension<MessageT, T> checkNotLite(ExtensionLite<? extends MessageT, T> extension) {
     if (extension.isLite()) {
@@ -3333,7 +3393,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     }
   }
 
-  /** Serialize the map using the iteration order. */
+  /** Serializes the map using the iteration order. */
   private static <K, V> void serializeMapTo(
       CodedOutputStream out, Map<K, V> m, MapEntry<K, V> defaultEntry, int fieldNumber)
       throws IOException {

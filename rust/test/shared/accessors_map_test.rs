@@ -212,7 +212,19 @@ fn test_map_setter() {
     }
 }
 
-#[test]
+#[gtest]
+fn test_message_map_mut_getter() {
+    let mut msg = TestAllTypes::new();
+    msg.set_optional_int32(5);
+    let mut map = protobuf::Map::<i32, TestAllTypes>::new();
+    map.as_mut().insert(1, msg);
+    assert_that!(map.as_view().len(), eq(1));
+    assert_that!(map.as_view().get(1).unwrap().optional_int32(), eq(5));
+    map.as_mut().get_mut(1).unwrap().set_optional_int32(10);
+    assert_that!(map.as_view().get(1).unwrap().optional_int32(), eq(10));
+}
+
+#[gtest]
 fn test_map_creation_with_message_values() {
     // Maps are usually created and owned by a parent message, but let's verify that
     // we can successfully create and destroy them independently.
@@ -237,7 +249,7 @@ fn test_map_creation_with_message_values() {
     );
 }
 
-#[test]
+#[gtest]
 fn test_map_clearing_with_message_values() {
     macro_rules! test_for_each_key {
         ($($key_t:ty, $key:expr;)*) => {
@@ -330,7 +342,7 @@ macro_rules! generate_map_with_msg_values_tests {
                     msg.[< map_ $k_field _all_types_mut >]().remove($k_nonzero),
                     eq(true),
                     "`remove` should return true when key was present.");
-                assert_that!(msg.[< map_ $k_field _all_types >](), empty());
+                assert_that!(msg.[< map_ $k_field _all_types >](), is_empty());
                 assert_that!(
                     msg.[< map_ $k_field _all_types_mut >]().remove($k_nonzero),
                     eq(false),

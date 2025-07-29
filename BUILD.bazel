@@ -2,7 +2,6 @@
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 load("@rules_license//rules:license.bzl", "license")
-load("@rules_pkg//pkg:mappings.bzl", "pkg_files", "strip_prefix")
 load("//bazel:cc_proto_library.bzl", "cc_proto_library")
 load("//bazel:java_lite_proto_library.bzl", "java_lite_proto_library")
 load("//bazel:java_proto_library.bzl", "java_proto_library")
@@ -165,6 +164,118 @@ alias(
     visibility = ["//visibility:public"],
 )
 
+# upb targets for some of the well-known types
+
+alias(
+    name = "any_upb_proto",
+    actual = "//src/google/protobuf:any_upb_proto",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "api_upb_proto",
+    actual = "//src/google/protobuf:api_upb_proto",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "duration_upb_proto",
+    actual = "//src/google/protobuf:duration_upb_proto",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "empty_upb_proto",
+    actual = "//src/google/protobuf:empty_upb_proto",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "field_mask_upb_proto",
+    actual = "//src/google/protobuf:field_mask_upb_proto",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "source_context_upb_proto",
+    actual = "//src/google/protobuf:source_context_upb_proto",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "struct_upb_proto",
+    actual = "//src/google/protobuf:struct_upb_proto",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "type_upb_proto",
+    actual = "//src/google/protobuf:type_upb_proto",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "wrappers_upb_proto",
+    actual = "//src/google/protobuf:wrappers_upb_proto",
+    visibility = ["//visibility:public"],
+)
+
+# upb reflection targets for some of the well-known types
+
+alias(
+    name = "any_upb_reflection_proto",
+    actual = "//src/google/protobuf:any_upb_reflection_proto",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "api_upb_reflection_proto",
+    actual = "//src/google/protobuf:api_upb_reflection_proto",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "duration_upb_reflection_proto",
+    actual = "//src/google/protobuf:duration_upb_reflection_proto",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "empty_upb_reflection_proto",
+    actual = "//src/google/protobuf:empty_upb_reflection_proto",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "field_mask_upb_reflection_proto",
+    actual = "//src/google/protobuf:field_mask_upb_reflection_proto",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "source_context_upb_reflection_proto",
+    actual = "//src/google/protobuf:source_context_upb_reflection_proto",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "struct_upb_reflection_proto",
+    actual = "//src/google/protobuf:struct_upb_reflection_proto",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "type_upb_reflection_proto",
+    actual = "//src/google/protobuf:type_upb_reflection_proto",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "wrappers_upb_reflection_proto",
+    actual = "//src/google/protobuf:wrappers_upb_reflection_proto",
+    visibility = ["//visibility:public"],
+)
+
 # Source files: these are aliases to a filegroup, not a `proto_library`.
 #
 # (This is _probably_ not what you want.)
@@ -239,7 +350,15 @@ cc_binary(
     copts = COPTS,
     linkopts = LINK_OPTS,
     visibility = ["//visibility:public"],
-    deps = ["//src/google/protobuf/compiler:protoc_lib"],
+    deps = ["//src/google/protobuf/compiler:protoc_lib_stage1"],
+)
+
+cc_binary(
+    name = "protoc_stage0",
+    copts = COPTS,
+    linkopts = LINK_OPTS,
+    visibility = ["//:__subpackages__"],
+    deps = ["//src/google/protobuf/compiler:protoc_lib_stage0"],
 )
 
 cc_binary(
@@ -254,7 +373,7 @@ cc_binary(
     }),
     linkopts = LINK_OPTS,
     visibility = ["//visibility:public"],
-    deps = ["//src/google/protobuf/compiler:protoc_lib"],
+    deps = ["//src/google/protobuf/compiler:protoc_lib_stage1"],
 )
 
 ################################################################################
@@ -437,6 +556,9 @@ proto_lang_toolchain(
         "//:descriptor_proto",
     ],
     command_line = "--cpp_out=$(OUT)",
+    plugin = "//src/google/protobuf/compiler/cpp:protoc-gen-cpp",
+    plugin_format_flag = "--plugin=protoc-gen-cpp=%s",
+    protoc_minimal_do_not_use = "//src/google/protobuf/compiler:protoc_minimal",
     runtime = "//src/google/protobuf",
     visibility = ["//visibility:public"],
 )
@@ -466,6 +588,16 @@ alias(
 alias(
     name = "protobuf_rust",
     actual = "//rust:protobuf",
+    visibility = ["//visibility:public"],
+)
+
+################################################################################
+# Go support
+################################################################################
+
+alias(
+    name = "go_features_proto",
+    actual = "//go:go_features_proto",  # proto_library
     visibility = ["//visibility:public"],
 )
 
