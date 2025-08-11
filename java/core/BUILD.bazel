@@ -217,7 +217,10 @@ cc_proto_library(
 filegroup(
     name = "java_features_proto_srcs",
     srcs = ["src/main/resources/google/protobuf/java_features.proto"],
-    visibility = ["//pkg:__pkg__"],
+    visibility = [
+        "//pkg:__pkg__",
+        "//python:__pkg__",
+    ],
 )
 
 compile_edition_defaults(
@@ -226,7 +229,7 @@ compile_edition_defaults(
         "//:descriptor_proto",
         "//:java_features_proto",
     ],
-    maximum_edition = "2023",
+    maximum_edition = "2024",
     minimum_edition = "PROTO2",
 )
 
@@ -425,7 +428,7 @@ build_test(
 conformance_test(
     name = "conformance_test",
     failure_list = "//conformance:failure_list_java.txt",
-    maximum_edition = "2023",
+    maximum_edition = "2024",
     testee = "//conformance:conformance_java",
     text_format_failure_list = "//conformance:text_format_failure_list_java.txt",
 )

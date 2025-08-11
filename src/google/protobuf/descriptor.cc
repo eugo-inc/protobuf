@@ -8731,8 +8731,6 @@ void DescriptorBuilder::ValidateOptions(const FieldDescriptor* field,
       return;
     }
 
-    // TODO: b/396020109 - Check for MessageSet extensions in separate .txtpb
-    // file.
     if (pool_->ShouldEnforceExtensionDeclaration(*field)) {
       for (const auto& declaration : extension_range->options_->declaration()) {
         if (declaration.number() != field->number()) continue;
@@ -10691,21 +10689,18 @@ HasbitMode GetFieldHasbitModeWithoutProfile(const FieldDescriptor* field) {
     return HasbitMode::kTrueHasbit;
   }
 
-  // Implicit presence fields.
-  if (!field->is_repeated()) {
+  if constexpr (EnableExperimentalHintHasBitsForRepeatedFields()) {
+    // With hasbits for repeated fields enabled, both implicit-presence and
+    // repeated/map fields have hint hasbits.
     return HasbitMode::kHintHasbit;
   }
-  // We currently don't implement hasbits for implicit repeated fields.
-  return HasbitMode::kNoHasbit;
+
+  // Implicit-presence fields have hint hasbits, repeated/map fields do not.
+  return field->is_repeated() ? HasbitMode::kNoHasbit : HasbitMode::kHintHasbit;
 }
 
 bool HasHasbitWithoutProfile(const FieldDescriptor* field) {
   return GetFieldHasbitModeWithoutProfile(field) != HasbitMode::kNoHasbit;
-}
-
-static bool IsVerifyUtf8(const FieldDescriptor* field, bool is_lite) {
-  if (is_lite) return false;
-  return true;
 }
 
 // Which level of UTF-8 enforcemant is placed on this file.
@@ -10717,8 +10712,6 @@ Utf8CheckMode GetUtf8CheckMode(const FieldDescriptor* field, bool is_lite) {
                                FieldDescriptor::TYPE_STRING))) {
     if (IsStrictUtf8(field)) {
       return Utf8CheckMode::kStrict;
-    } else if (IsVerifyUtf8(field, is_lite)) {
-      return Utf8CheckMode::kVerify;
     }
   }
   return Utf8CheckMode::kNone;

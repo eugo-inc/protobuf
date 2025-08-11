@@ -360,7 +360,8 @@ PROTOBUF_EXPORT extern const ::google::protobuf::internal::ClassDataFull Any_cla
 inline void Any::clear_type_url() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.type_url_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
 }
 inline const ::std::string& Any::type_url() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -376,6 +377,7 @@ PROTOBUF_ALWAYS_INLINE void Any::set_type_url(Arg_&& arg, Args_... args) {
 }
 inline ::std::string* PROTOBUF_NONNULL Any::mutable_type_url()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   ::std::string* _s = _internal_mutable_type_url();
   // @@protoc_insertion_point(field_mutable:google.protobuf.Any.type_url)
   return _s;
@@ -386,12 +388,10 @@ inline const ::std::string& Any::_internal_type_url() const {
 }
 inline void Any::_internal_set_type_url(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   _impl_.type_url_.Set(value, GetArena());
 }
 inline ::std::string* PROTOBUF_NONNULL Any::_internal_mutable_type_url() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   return _impl_.type_url_.Mutable( GetArena());
 }
 inline ::std::string* PROTOBUF_NULLABLE Any::release_type_url() {
@@ -425,7 +425,8 @@ inline void Any::set_allocated_type_url(::std::string* PROTOBUF_NULLABLE value) 
 inline void Any::clear_value() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.value_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
 }
 inline const ::std::string& Any::value() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -441,6 +442,7 @@ PROTOBUF_ALWAYS_INLINE void Any::set_value(Arg_&& arg, Args_... args) {
 }
 inline ::std::string* PROTOBUF_NONNULL Any::mutable_value()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::std::string* _s = _internal_mutable_value();
   // @@protoc_insertion_point(field_mutable:google.protobuf.Any.value)
   return _s;
@@ -451,12 +453,10 @@ inline const ::std::string& Any::_internal_value() const {
 }
 inline void Any::_internal_set_value(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   _impl_.value_.Set(value, GetArena());
 }
 inline ::std::string* PROTOBUF_NONNULL Any::_internal_mutable_value() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   return _impl_.value_.Mutable( GetArena());
 }
 inline ::std::string* PROTOBUF_NULLABLE Any::release_value() {

@@ -332,7 +332,7 @@ class PROTOC_EXPORT Version final : public ::google::protobuf::Message
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<2, 4,
-                                   0, 47,
+                                   0, 0,
                                    2>
       _table_;
 
@@ -582,7 +582,7 @@ class PROTOC_EXPORT CodeGeneratorResponse_File final : public ::google::protobuf
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<2, 4,
-                                   1, 86,
+                                   1, 0,
                                    2>
       _table_;
 
@@ -858,7 +858,7 @@ class PROTOC_EXPORT CodeGeneratorResponse final : public ::google::protobuf::Mes
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<3, 5,
-                                   1, 60,
+                                   1, 0,
                                    2>
       _table_;
 
@@ -1139,7 +1139,7 @@ class PROTOC_EXPORT CodeGeneratorRequest final : public ::google::protobuf::Mess
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<3, 5,
-                                   3, 79,
+                                   3, 0,
                                    2>
       _table_;
 
@@ -1197,7 +1197,8 @@ inline bool Version::has_major() const {
 inline void Version::clear_major() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.major_ = 0;
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
 }
 inline ::int32_t Version::major() const {
   // @@protoc_insertion_point(field_get:google.protobuf.compiler.Version.major)
@@ -1225,7 +1226,8 @@ inline bool Version::has_minor() const {
 inline void Version::clear_minor() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.minor_ = 0;
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
 }
 inline ::int32_t Version::minor() const {
   // @@protoc_insertion_point(field_get:google.protobuf.compiler.Version.minor)
@@ -1253,7 +1255,8 @@ inline bool Version::has_patch() const {
 inline void Version::clear_patch() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.patch_ = 0;
-  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
 }
 inline ::int32_t Version::patch() const {
   // @@protoc_insertion_point(field_get:google.protobuf.compiler.Version.patch)
@@ -1281,7 +1284,8 @@ inline bool Version::has_suffix() const {
 inline void Version::clear_suffix() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.suffix_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
 }
 inline const ::std::string& Version::suffix() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -1297,6 +1301,7 @@ PROTOBUF_ALWAYS_INLINE void Version::set_suffix(Arg_&& arg, Args_... args) {
 }
 inline ::std::string* PROTOBUF_NONNULL Version::mutable_suffix()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   ::std::string* _s = _internal_mutable_suffix();
   // @@protoc_insertion_point(field_mutable:google.protobuf.compiler.Version.suffix)
   return _s;
@@ -1307,12 +1312,10 @@ inline const ::std::string& Version::_internal_suffix() const {
 }
 inline void Version::_internal_set_suffix(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   _impl_.suffix_.Set(value, GetArena());
 }
 inline ::std::string* PROTOBUF_NONNULL Version::_internal_mutable_suffix() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   return _impl_.suffix_.Mutable( GetArena());
 }
 inline ::std::string* PROTOBUF_NULLABLE Version::release_suffix() {
@@ -1418,7 +1421,8 @@ inline bool CodeGeneratorRequest::has_parameter() const {
 inline void CodeGeneratorRequest::clear_parameter() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.parameter_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
 }
 inline const ::std::string& CodeGeneratorRequest::parameter() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -1434,6 +1438,7 @@ PROTOBUF_ALWAYS_INLINE void CodeGeneratorRequest::set_parameter(Arg_&& arg, Args
 }
 inline ::std::string* PROTOBUF_NONNULL CodeGeneratorRequest::mutable_parameter()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   ::std::string* _s = _internal_mutable_parameter();
   // @@protoc_insertion_point(field_mutable:google.protobuf.compiler.CodeGeneratorRequest.parameter)
   return _s;
@@ -1444,12 +1449,10 @@ inline const ::std::string& CodeGeneratorRequest::_internal_parameter() const {
 }
 inline void CodeGeneratorRequest::_internal_set_parameter(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   _impl_.parameter_.Set(value, GetArena());
 }
 inline ::std::string* PROTOBUF_NONNULL CodeGeneratorRequest::_internal_mutable_parameter() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   return _impl_.parameter_.Mutable( GetArena());
 }
 inline ::std::string* PROTOBUF_NULLABLE CodeGeneratorRequest::release_parameter() {
@@ -1580,7 +1583,8 @@ inline bool CodeGeneratorRequest::has_compiler_version() const {
 inline void CodeGeneratorRequest::clear_compiler_version() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.compiler_version_ != nullptr) _impl_.compiler_version_->Clear();
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
 }
 inline const ::google::protobuf::compiler::Version& CodeGeneratorRequest::_internal_compiler_version() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -1681,7 +1685,8 @@ inline bool CodeGeneratorResponse_File::has_name() const {
 inline void CodeGeneratorResponse_File::clear_name() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.name_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
 }
 inline const ::std::string& CodeGeneratorResponse_File::name() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -1697,6 +1702,7 @@ PROTOBUF_ALWAYS_INLINE void CodeGeneratorResponse_File::set_name(Arg_&& arg, Arg
 }
 inline ::std::string* PROTOBUF_NONNULL CodeGeneratorResponse_File::mutable_name()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   ::std::string* _s = _internal_mutable_name();
   // @@protoc_insertion_point(field_mutable:google.protobuf.compiler.CodeGeneratorResponse.File.name)
   return _s;
@@ -1707,12 +1713,10 @@ inline const ::std::string& CodeGeneratorResponse_File::_internal_name() const {
 }
 inline void CodeGeneratorResponse_File::_internal_set_name(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   _impl_.name_.Set(value, GetArena());
 }
 inline ::std::string* PROTOBUF_NONNULL CodeGeneratorResponse_File::_internal_mutable_name() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   return _impl_.name_.Mutable( GetArena());
 }
 inline ::std::string* PROTOBUF_NULLABLE CodeGeneratorResponse_File::release_name() {
@@ -1750,7 +1754,8 @@ inline bool CodeGeneratorResponse_File::has_insertion_point() const {
 inline void CodeGeneratorResponse_File::clear_insertion_point() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.insertion_point_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
 }
 inline const ::std::string& CodeGeneratorResponse_File::insertion_point() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -1766,6 +1771,7 @@ PROTOBUF_ALWAYS_INLINE void CodeGeneratorResponse_File::set_insertion_point(Arg_
 }
 inline ::std::string* PROTOBUF_NONNULL CodeGeneratorResponse_File::mutable_insertion_point()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::std::string* _s = _internal_mutable_insertion_point();
   // @@protoc_insertion_point(field_mutable:google.protobuf.compiler.CodeGeneratorResponse.File.insertion_point)
   return _s;
@@ -1776,12 +1782,10 @@ inline const ::std::string& CodeGeneratorResponse_File::_internal_insertion_poin
 }
 inline void CodeGeneratorResponse_File::_internal_set_insertion_point(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   _impl_.insertion_point_.Set(value, GetArena());
 }
 inline ::std::string* PROTOBUF_NONNULL CodeGeneratorResponse_File::_internal_mutable_insertion_point() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   return _impl_.insertion_point_.Mutable( GetArena());
 }
 inline ::std::string* PROTOBUF_NULLABLE CodeGeneratorResponse_File::release_insertion_point() {
@@ -1819,7 +1823,8 @@ inline bool CodeGeneratorResponse_File::has_content() const {
 inline void CodeGeneratorResponse_File::clear_content() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.content_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
 }
 inline const ::std::string& CodeGeneratorResponse_File::content() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -1835,6 +1840,7 @@ PROTOBUF_ALWAYS_INLINE void CodeGeneratorResponse_File::set_content(Arg_&& arg, 
 }
 inline ::std::string* PROTOBUF_NONNULL CodeGeneratorResponse_File::mutable_content()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::std::string* _s = _internal_mutable_content();
   // @@protoc_insertion_point(field_mutable:google.protobuf.compiler.CodeGeneratorResponse.File.content)
   return _s;
@@ -1845,12 +1851,10 @@ inline const ::std::string& CodeGeneratorResponse_File::_internal_content() cons
 }
 inline void CodeGeneratorResponse_File::_internal_set_content(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   _impl_.content_.Set(value, GetArena());
 }
 inline ::std::string* PROTOBUF_NONNULL CodeGeneratorResponse_File::_internal_mutable_content() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   return _impl_.content_.Mutable( GetArena());
 }
 inline ::std::string* PROTOBUF_NULLABLE CodeGeneratorResponse_File::release_content() {
@@ -1985,7 +1989,8 @@ inline bool CodeGeneratorResponse::has_error() const {
 inline void CodeGeneratorResponse::clear_error() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.error_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
 }
 inline const ::std::string& CodeGeneratorResponse::error() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -2001,6 +2006,7 @@ PROTOBUF_ALWAYS_INLINE void CodeGeneratorResponse::set_error(Arg_&& arg, Args_..
 }
 inline ::std::string* PROTOBUF_NONNULL CodeGeneratorResponse::mutable_error()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   ::std::string* _s = _internal_mutable_error();
   // @@protoc_insertion_point(field_mutable:google.protobuf.compiler.CodeGeneratorResponse.error)
   return _s;
@@ -2011,12 +2017,10 @@ inline const ::std::string& CodeGeneratorResponse::_internal_error() const {
 }
 inline void CodeGeneratorResponse::_internal_set_error(const ::std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   _impl_.error_.Set(value, GetArena());
 }
 inline ::std::string* PROTOBUF_NONNULL CodeGeneratorResponse::_internal_mutable_error() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   return _impl_.error_.Mutable( GetArena());
 }
 inline ::std::string* PROTOBUF_NULLABLE CodeGeneratorResponse::release_error() {
@@ -2054,7 +2058,8 @@ inline bool CodeGeneratorResponse::has_supported_features() const {
 inline void CodeGeneratorResponse::clear_supported_features() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.supported_features_ = ::uint64_t{0u};
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
 }
 inline ::uint64_t CodeGeneratorResponse::supported_features() const {
   // @@protoc_insertion_point(field_get:google.protobuf.compiler.CodeGeneratorResponse.supported_features)
@@ -2082,7 +2087,8 @@ inline bool CodeGeneratorResponse::has_minimum_edition() const {
 inline void CodeGeneratorResponse::clear_minimum_edition() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.minimum_edition_ = 0;
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
 }
 inline ::int32_t CodeGeneratorResponse::minimum_edition() const {
   // @@protoc_insertion_point(field_get:google.protobuf.compiler.CodeGeneratorResponse.minimum_edition)
@@ -2110,7 +2116,8 @@ inline bool CodeGeneratorResponse::has_maximum_edition() const {
 inline void CodeGeneratorResponse::clear_maximum_edition() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.maximum_edition_ = 0;
-  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
 }
 inline ::int32_t CodeGeneratorResponse::maximum_edition() const {
   // @@protoc_insertion_point(field_get:google.protobuf.compiler.CodeGeneratorResponse.maximum_edition)

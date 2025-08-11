@@ -152,8 +152,8 @@ FieldMask::~FieldMask() {
 }
 inline void FieldMask::SharedDtor(MessageLite& self) {
   FieldMask& this_ = static_cast<FieldMask&>(self);
-  if constexpr (::_pbi::DebugHardenVerifyHasBitConsistency()) {
-    this_.VerifyHasBitConsistency();
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
   }
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
@@ -241,7 +241,7 @@ FieldMask::_table_ = {
     65535, 65535
   }}, {{
     // repeated string paths = 1;
-    {PROTOBUF_FIELD_OFFSET(FieldMask, _impl_.paths_), 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    {PROTOBUF_FIELD_OFFSET(FieldMask, _impl_.paths_), -1, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
   }},
   // no aux_entries
   {{
@@ -272,8 +272,8 @@ PROTOBUF_NOINLINE void FieldMask::Clear() {
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
   const FieldMask& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  if constexpr (::_pbi::DebugHardenVerifyHasBitConsistency()) {
-    this_.VerifyHasBitConsistency();
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
   }
   // @@protoc_insertion_point(serialize_to_array_start:google.protobuf.FieldMask)
   ::uint32_t cached_has_bits = 0;
@@ -331,21 +331,23 @@ void FieldMask::MergeImpl(::google::protobuf::MessageLite& to_msg,
    auto* const _this =
       static_cast<FieldMask*>(&to_msg);
   auto& from = static_cast<const FieldMask&>(from_msg);
-  if constexpr (::_pbi::DebugHardenVerifyHasBitConsistency()) {
-    from.VerifyHasBitConsistency();
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
   }
   // @@protoc_insertion_point(class_specific_merge_from_start:google.protobuf.FieldMask)
   ABSL_DCHECK_NE(&from, _this);
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
 
-  _this->_internal_mutable_paths()->MergeFrom(from._internal_paths());
+  {
+    _this->_internal_mutable_paths()->MergeFrom(from._internal_paths());
+  }
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
 }
 
 void FieldMask::CopyFrom(const FieldMask& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:google.protobuf.FieldMask)
+  // @@protoc_insertion_point(class_specific_copy_from_start:google.protobuf.FieldMask)
   if (&from == this) return;
   Clear();
   MergeFrom(from);

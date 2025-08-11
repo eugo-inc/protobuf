@@ -358,8 +358,8 @@ Struct::~Struct() {
 }
 inline void Struct::SharedDtor(MessageLite& self) {
   Struct& this_ = static_cast<Struct&>(self);
-  if constexpr (::_pbi::DebugHardenVerifyHasBitConsistency()) {
-    this_.VerifyHasBitConsistency();
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
   }
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
@@ -449,12 +449,11 @@ Struct::_table_ = {
     65535, 65535
   }}, {{
     // map<string, .google.protobuf.Value> fields = 1;
-    {PROTOBUF_FIELD_OFFSET(Struct, _impl_.fields_), 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
+    {PROTOBUF_FIELD_OFFSET(Struct, _impl_.fields_), -1, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
   }},
   {{
-      {::_pbi::TcParser::GetMapAuxInfo(1, 0, 0,
-                                       9, 11,
-                                       0)},
+      {::_pbi::TcParser::GetMapAuxInfo(
+          1, 0, 9, 11, 0)},
       {::_pbi::TcParser::GetTable<::google::protobuf::Value>()},
   }},
   {{
@@ -485,8 +484,8 @@ PROTOBUF_NOINLINE void Struct::Clear() {
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
   const Struct& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  if constexpr (::_pbi::DebugHardenVerifyHasBitConsistency()) {
-    this_.VerifyHasBitConsistency();
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
   }
   // @@protoc_insertion_point(serialize_to_array_start:google.protobuf.Struct)
   ::uint32_t cached_has_bits = 0;
@@ -564,21 +563,23 @@ void Struct::MergeImpl(::google::protobuf::MessageLite& to_msg,
    auto* const _this =
       static_cast<Struct*>(&to_msg);
   auto& from = static_cast<const Struct&>(from_msg);
-  if constexpr (::_pbi::DebugHardenVerifyHasBitConsistency()) {
-    from.VerifyHasBitConsistency();
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
   }
   // @@protoc_insertion_point(class_specific_merge_from_start:google.protobuf.Struct)
   ABSL_DCHECK_NE(&from, _this);
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
 
-  _this->_impl_.fields_.MergeFrom(from._impl_.fields_);
+  {
+    _this->_impl_.fields_.MergeFrom(from._impl_.fields_);
+  }
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
 }
 
 void Struct::CopyFrom(const Struct& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:google.protobuf.Struct)
+  // @@protoc_insertion_point(class_specific_copy_from_start:google.protobuf.Struct)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -699,8 +700,8 @@ Value::~Value() {
 }
 inline void Value::SharedDtor(MessageLite& self) {
   Value& this_ = static_cast<Value&>(self);
-  if constexpr (::_pbi::DebugHardenVerifyHasBitConsistency()) {
-    this_.VerifyHasBitConsistency();
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
   }
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
@@ -865,8 +866,8 @@ PROTOBUF_NOINLINE void Value::Clear() {
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
   const Value& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  if constexpr (::_pbi::DebugHardenVerifyHasBitConsistency()) {
-    this_.VerifyHasBitConsistency();
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
   }
   // @@protoc_insertion_point(serialize_to_array_start:google.protobuf.Value)
   ::uint32_t cached_has_bits = 0;
@@ -984,8 +985,8 @@ void Value::MergeImpl(::google::protobuf::MessageLite& to_msg,
    auto* const _this =
       static_cast<Value*>(&to_msg);
   auto& from = static_cast<const Value&>(from_msg);
-  if constexpr (::_pbi::DebugHardenVerifyHasBitConsistency()) {
-    from.VerifyHasBitConsistency();
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
   }
   ::google::protobuf::Arena* arena = _this->GetArena();
   // @@protoc_insertion_point(class_specific_merge_from_start:google.protobuf.Value)
@@ -1049,7 +1050,7 @@ void Value::MergeImpl(::google::protobuf::MessageLite& to_msg,
 }
 
 void Value::CopyFrom(const Value& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:google.protobuf.Value)
+  // @@protoc_insertion_point(class_specific_copy_from_start:google.protobuf.Value)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -1119,8 +1120,8 @@ ListValue::~ListValue() {
 }
 inline void ListValue::SharedDtor(MessageLite& self) {
   ListValue& this_ = static_cast<ListValue&>(self);
-  if constexpr (::_pbi::DebugHardenVerifyHasBitConsistency()) {
-    this_.VerifyHasBitConsistency();
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
   }
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
@@ -1208,7 +1209,7 @@ ListValue::_table_ = {
     65535, 65535
   }}, {{
     // repeated .google.protobuf.Value values = 1;
-    {PROTOBUF_FIELD_OFFSET(ListValue, _impl_.values_), 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(ListValue, _impl_.values_), -1, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::google::protobuf::Value>()},
@@ -1238,8 +1239,8 @@ PROTOBUF_NOINLINE void ListValue::Clear() {
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
   const ListValue& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  if constexpr (::_pbi::DebugHardenVerifyHasBitConsistency()) {
-    this_.VerifyHasBitConsistency();
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
   }
   // @@protoc_insertion_point(serialize_to_array_start:google.protobuf.ListValue)
   ::uint32_t cached_has_bits = 0;
@@ -1298,22 +1299,24 @@ void ListValue::MergeImpl(::google::protobuf::MessageLite& to_msg,
    auto* const _this =
       static_cast<ListValue*>(&to_msg);
   auto& from = static_cast<const ListValue&>(from_msg);
-  if constexpr (::_pbi::DebugHardenVerifyHasBitConsistency()) {
-    from.VerifyHasBitConsistency();
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
   }
   // @@protoc_insertion_point(class_specific_merge_from_start:google.protobuf.ListValue)
   ABSL_DCHECK_NE(&from, _this);
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
 
-  _this->_internal_mutable_values()->MergeFrom(
-      from._internal_values());
+  {
+    _this->_internal_mutable_values()->MergeFrom(
+        from._internal_values());
+  }
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
 }
 
 void ListValue::CopyFrom(const ListValue& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:google.protobuf.ListValue)
+  // @@protoc_insertion_point(class_specific_copy_from_start:google.protobuf.ListValue)
   if (&from == this) return;
   Clear();
   MergeFrom(from);

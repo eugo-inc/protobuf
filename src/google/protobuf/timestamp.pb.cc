@@ -155,8 +155,8 @@ Timestamp::~Timestamp() {
 }
 inline void Timestamp::SharedDtor(MessageLite& self) {
   Timestamp& this_ = static_cast<Timestamp&>(self);
-  if constexpr (::_pbi::DebugHardenVerifyHasBitConsistency()) {
-    this_.VerifyHasBitConsistency();
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
   }
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
@@ -271,15 +271,16 @@ PROTOBUF_NOINLINE void Timestamp::Clear() {
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
   const Timestamp& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  if constexpr (::_pbi::DebugHardenVerifyHasBitConsistency()) {
-    this_.VerifyHasBitConsistency();
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
   }
   // @@protoc_insertion_point(serialize_to_array_start:google.protobuf.Timestamp)
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
 
+  cached_has_bits = this_._impl_._has_bits_[0];
   // int64 seconds = 1;
-  if (CheckHasBit(this_._impl_._has_bits_[0], 0x00000001U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
     if (this_._internal_seconds() != 0) {
       target =
           ::google::protobuf::internal::WireFormatLite::WriteInt64ToArrayWithField<1>(
@@ -288,7 +289,7 @@ PROTOBUF_NOINLINE void Timestamp::Clear() {
   }
 
   // int32 nanos = 2;
-  if (CheckHasBit(this_._impl_._has_bits_[0], 0x00000002U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
     if (this_._internal_nanos() != 0) {
       target =
           ::google::protobuf::internal::WireFormatLite::WriteInt32ToArrayWithField<2>(
@@ -346,8 +347,8 @@ void Timestamp::MergeImpl(::google::protobuf::MessageLite& to_msg,
    auto* const _this =
       static_cast<Timestamp*>(&to_msg);
   auto& from = static_cast<const Timestamp&>(from_msg);
-  if constexpr (::_pbi::DebugHardenVerifyHasBitConsistency()) {
-    from.VerifyHasBitConsistency();
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
   }
   // @@protoc_insertion_point(class_specific_merge_from_start:google.protobuf.Timestamp)
   ABSL_DCHECK_NE(&from, _this);
@@ -373,7 +374,7 @@ void Timestamp::MergeImpl(::google::protobuf::MessageLite& to_msg,
 }
 
 void Timestamp::CopyFrom(const Timestamp& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:google.protobuf.Timestamp)
+  // @@protoc_insertion_point(class_specific_copy_from_start:google.protobuf.Timestamp)
   if (&from == this) return;
   Clear();
   MergeFrom(from);

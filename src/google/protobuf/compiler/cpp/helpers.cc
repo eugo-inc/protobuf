@@ -1098,8 +1098,11 @@ std::optional<float> GetFieldGroupPresenceProbability(
 
 HasbitMode GetFieldHasbitMode(const FieldDescriptor* field,
                               const Options& options) {
-  // TODO: Use profile data to determine the hasbit mode for fields
-  // with optional hasbits.
+  if (IsProfileDriven(options) && field->is_repeated() &&
+      IsLikelyPresent(field, options)) {
+    return HasbitMode::kNoHasbit;
+  }
+
   return internal::cpp::GetFieldHasbitModeWithoutProfile(field);
 }
 
@@ -1367,6 +1370,9 @@ bool ShouldGenerateV2Code(const Descriptor* descriptor,
 }
 
 bool IsEligibleForV2Batching(const FieldDescriptor* field) {
+#ifdef PROTOBUF_DISABLE_BATCH
+  return false;
+#endif  // PROTOBUF_DISABLE_BATCH
   // Non-message fields whose numbers fit into 2B should be considered for
   // batching although the actual batching depends on the current batching, the
   // payload size, etc. Oneof fields are not eligible for batching because they
@@ -1528,20 +1534,6 @@ static void GenerateUtf8CheckCode(io::Printer* p, const FieldDescriptor* field,
         p->Emit(R"cc(
           $pbi$::WireFormatLite::$Strict$(
               $params$ $pbi$::WireFormatLite::SERIALIZE, "$pkg.Msg.field$");
-        )cc");
-      }
-      break;
-
-    case internal::cpp::Utf8CheckMode::kVerify:
-      if (for_parse) {
-        p->Emit(R"cc(
-          $pbi$::WireFormat::$Verify$($params$ $pbi$::WireFormat::PARSE,
-                                      "$pkg.Msg.field$");
-        )cc");
-      } else {
-        p->Emit(R"cc(
-          $pbi$::WireFormat::$Verify$($params$ $pbi$::WireFormat::SERIALIZE,
-                                      "$pkg.Msg.field$");
         )cc");
       }
       break;

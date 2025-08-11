@@ -184,8 +184,8 @@ Any::~Any() {
 }
 inline void Any::SharedDtor(MessageLite& self) {
   Any& this_ = static_cast<Any&>(self);
-  if constexpr (::_pbi::DebugHardenVerifyHasBitConsistency()) {
-    this_.VerifyHasBitConsistency();
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
   }
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
@@ -308,15 +308,16 @@ PROTOBUF_NOINLINE void Any::Clear() {
     ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
   const Any& this_ = *this;
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  if constexpr (::_pbi::DebugHardenVerifyHasBitConsistency()) {
-    this_.VerifyHasBitConsistency();
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
   }
   // @@protoc_insertion_point(serialize_to_array_start:google.protobuf.Any)
   ::uint32_t cached_has_bits = 0;
   (void)cached_has_bits;
 
+  cached_has_bits = this_._impl_._has_bits_[0];
   // string type_url = 1;
-  if (CheckHasBit(this_._impl_._has_bits_[0], 0x00000001U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
     if (!this_._internal_type_url().empty()) {
       const ::std::string& _s = this_._internal_type_url();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
@@ -326,7 +327,7 @@ PROTOBUF_NOINLINE void Any::Clear() {
   }
 
   // bytes value = 2;
-  if (CheckHasBit(this_._impl_._has_bits_[0], 0x00000002U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
     if (!this_._internal_value().empty()) {
       const ::std::string& _s = this_._internal_value();
       target = stream->WriteBytesMaybeAliased(2, _s, target);
@@ -383,8 +384,8 @@ void Any::MergeImpl(::google::protobuf::MessageLite& to_msg,
    auto* const _this =
       static_cast<Any*>(&to_msg);
   auto& from = static_cast<const Any&>(from_msg);
-  if constexpr (::_pbi::DebugHardenVerifyHasBitConsistency()) {
-    from.VerifyHasBitConsistency();
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
   }
   // @@protoc_insertion_point(class_specific_merge_from_start:google.protobuf.Any)
   ABSL_DCHECK_NE(&from, _this);
@@ -418,7 +419,7 @@ void Any::MergeImpl(::google::protobuf::MessageLite& to_msg,
 }
 
 void Any::CopyFrom(const Any& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:google.protobuf.Any)
+  // @@protoc_insertion_point(class_specific_copy_from_start:google.protobuf.Any)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
