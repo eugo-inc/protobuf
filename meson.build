@@ -8,7 +8,7 @@ project(
         'buildtype=release',
     ],
     meson_version: '>=1.3.0',
-    version: '5.30.0' # Must match pyproject.toml#project
+    version: '6.33.0' # Must match pyproject.toml#project
 )
 # === @end: General ===
 
