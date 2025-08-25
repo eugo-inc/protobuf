@@ -1,14 +1,16 @@
 [build-system]
 build-backend = 'mesonpy'
-requires = ['meson-python']
+requires = [
+    'meson_python>=0.17.1',
+    'meson>=1.8.0',
+]
+
 
 [project]
 name = 'protobuf'
 readme = 'README.md'
 requires-python = '>=3.12'
-
-# Must match `./meson.build#project#version` and `./python/google/protobuf/__init__.py#__version__`.
-#
-# The latter is managed by `protobuf` mainteners, so it should be treated as a single source of truth for the package version.
-# @TODO+:Eugo:sync(this regularily, as it's hard to set this dynamically from `./python/google/protobuf/__init__.py` in `meson`.)
-version = '6.33.0'
+dynamic = ["version"]
+authors = [
+    {name = "Eugo, Inc."},
+]
