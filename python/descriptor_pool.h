@@ -10,7 +10,8 @@
 
 #include <stdbool.h>
 
-#include "protobuf.h"
+// @EUGO_CHANGE: changed `#include "protobuf.h"` to more resilient `#include "python/protobuf.h"`
+#include "python/protobuf.h"
 
 // Returns a Python wrapper object for the given symtab. The symtab must have
 // been created from a Python DescriptorPool originally.

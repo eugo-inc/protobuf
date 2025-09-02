@@ -8,7 +8,9 @@
 #ifndef PYUPB_CONVERT_H__
 #define PYUPB_CONVERT_H__
 
-#include "protobuf.h"
+// @EUGO_CHANGE: changed `#include "protobuf.h"` to more resilient `#include "python/protobuf.h"`
+#include "python/protobuf.h"
+
 #include "upb/reflection/def.h"
 #include "upb/reflection/message.h"
 
