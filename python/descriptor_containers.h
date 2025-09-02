@@ -22,7 +22,9 @@
 
 #include <stdbool.h>
 
-#include "protobuf.h"
+// @EUGO_CHANGE: changed `#include "protobuf.h"` to more resilient `#include "python/protobuf.h"`
+#include "python/protobuf.h"
+
 #include "upb/reflection/def.h"
 
 // -----------------------------------------------------------------------------

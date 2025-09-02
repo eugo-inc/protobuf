@@ -8,6 +8,7 @@
 #ifndef UPB_BASE_UPCAST_H_
 #define UPB_BASE_UPCAST_H_
 
+
 // Must be last.
 #include "upb/port/def.inc"
 
