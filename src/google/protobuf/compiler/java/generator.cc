@@ -53,8 +53,6 @@ bool JavaGenerator::Generate(const FileDescriptor* file,
   ParseGeneratorParameter(parameter, &options);
   Options file_options;
 
-  file_options.opensource_runtime = opensource_runtime_;
-
   for (auto& option : options) {
     if (option.first == "output_list_file") {
       file_options.output_list_file = option.second;
@@ -74,6 +72,8 @@ bool JavaGenerator::Generate(const FileDescriptor* file,
       file_options.annotation_list_file = option.second;
     } else if (option.first == "experimental_strip_nonfunctional_codegen") {
       file_options.strip_nonfunctional_codegen = true;
+    } else if (option.first == "bootstrap") {
+      file_options.bootstrap = true;
     } else {
       *error = absl::StrCat("Unknown generator option: ", option.first);
       return false;
@@ -148,7 +148,8 @@ bool JavaGenerator::Generate(const FileDescriptor* file,
     if (file_options.annotate_code) {
       std::unique_ptr<io::ZeroCopyOutputStream> info_output(
           context->Open(info_full_path));
-      annotations.SerializeToZeroCopyStream(info_output.get());
+      // TODO: Remove this suppression.
+      (void)annotations.SerializeToZeroCopyStream(info_output.get());
     }
   }
 

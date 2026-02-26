@@ -8,9 +8,8 @@ Most users should depend upon public aliases in the root:
     //:well_known_types_py_pb2
 """
 
-load("@bazel_skylib//lib:selects.bzl", "selects")
 load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
-load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_library")
 load("@rules_pkg//pkg:mappings.bzl", "pkg_files", "strip_prefix")
 load("@rules_python//python:defs.bzl", "py_library")
 load("//:protobuf.bzl", "internal_py_proto_library")
@@ -19,7 +18,7 @@ load("//build_defs:arch_tests.bzl", "aarch64_test", "x86_64_test")
 load("//build_defs:cpp_opts.bzl", "COPTS")
 load("//conformance:defs.bzl", "conformance_test")
 load("//editions:defaults.bzl", "compile_edition_defaults", "embed_edition_defaults")
-load(":internal.bzl", "internal_copy_files", "internal_py_test")
+load(":internal.bzl", "internal_copy_files", "internal_is_windows", "internal_py_test")
 
 def build_targets(name):
     """
@@ -56,13 +55,18 @@ def build_targets(name):
         srcs = [":copied_wkt_proto_files"],
         include = ".",
         default_runtime = "",
-        protoc = "//:protoc",
         srcs_version = "PY2AND3",
         visibility = [
             "//:__pkg__",
             "//editions:__pkg__",
             "//upb:__subpackages__",
         ],
+    )
+
+    # Visibility needs to be public per https://github.com/bazelbuild/bazel-skylib/pull/584
+    internal_is_windows(
+        name = "is_windows",
+        visibility = ["//visibility:public"],
     )
 
     internal_copy_files(
@@ -80,11 +84,8 @@ def build_targets(name):
         copts = COPTS + [
             "-DPYTHON_PROTO2_CPP_IMPL_V2",
         ],
-        linkopts = selects.with_or({
-            (
-                "//python/dist:osx_x86_64",
-                "//python/dist:osx_aarch64",
-            ): ["-Wl,-undefined,dynamic_lookup"],
+        linkopts = select({
+            "@platforms//os:osx": ["-Wl,-undefined,dynamic_lookup"],
             "//conditions:default": [],
         }),
         linkshared = 1,
@@ -96,10 +97,7 @@ def build_targets(name):
             # https://docs.bazel.build/versions/master/be/common-definitions.html#common-attributes
             "manual",
         ],
-        deps = select({
-            "//conditions:default": [],
-            ":use_fast_cpp_protos": ["@system_python//:python_headers"],
-        }),
+        deps = ["@system_python//:python_headers"],
     )
 
     native.config_setting(
@@ -120,11 +118,8 @@ def build_targets(name):
             "//conditions:default": [],
             ":allow_oversize_protos": ["-DPROTOBUF_PYTHON_ALLOW_OVERSIZE_PROTOS=1"],
         }),
-        linkopts = selects.with_or({
-            (
-                "//python/dist:osx_x86_64",
-                "//python/dist:osx_aarch64",
-            ): ["-Wl,-undefined,dynamic_lookup"],
+        linkopts = select({
+            "@platforms//os:osx": ["-Wl,-undefined,dynamic_lookup"],
             "//conditions:default": [],
         }),
         includes = ["."],
@@ -146,16 +141,16 @@ def build_targets(name):
             "//src/google/protobuf/io:tokenizer",
             "//src/google/protobuf/stubs:lite",
             "//src/google/protobuf/util:differencer",
+            "@abseil-cpp//absl/base:core_headers",
             "@abseil-cpp//absl/container:flat_hash_map",
             "@abseil-cpp//absl/log:absl_check",
             "@abseil-cpp//absl/log:absl_log",
             "@abseil-cpp//absl/status",
             "@abseil-cpp//absl/status:statusor",
             "@abseil-cpp//absl/strings",
-        ] + select({
-            "//conditions:default": [],
-            ":use_fast_cpp_protos": ["@system_python//:python_headers"],
-        }),
+            "@abseil-cpp//absl/synchronization",
+            "@system_python//:python_headers",
+        ],
     )
 
     aarch64_test(
@@ -272,12 +267,24 @@ def build_targets(name):
         ],
         strip_prefix = "java/core/src/main/resources",
     )
+
+    internal_copy_files(
+        name = "copied_unittest_custom_options_unlinked_proto_files",
+        srcs = [
+            "//src/google/protobuf:unittest_custom_options_unlinked_proto_srcs",
+        ],
+        strip_prefix = "src",
+    )
+
     internal_py_proto_library(
         name = "test_dependency_proto_py_pb2",
-        srcs = [":copied_cpp_features_test_dependency_proto_files", ":copied_java_features_test_dependency_proto_files"],
+        srcs = [
+            ":copied_cpp_features_test_dependency_proto_files",
+            ":copied_java_features_test_dependency_proto_files",
+            ":copied_unittest_custom_options_unlinked_proto_files",
+        ],
         include = ".",
         default_runtime = "",
-        protoc = "//:protoc",
         srcs_version = "PY2AND3",
         visibility = [
             "//:__pkg__",
@@ -292,7 +299,6 @@ def build_targets(name):
         srcs = [":copied_test_proto_files"],
         include = ".",
         default_runtime = "",
-        protoc = "//:protoc",
         srcs_version = "PY2AND3",
         visibility = ["//:__pkg__"],
         deps = [":well_known_types_py_pb2", ":test_dependency_proto_py_pb2"],
@@ -307,7 +313,6 @@ def build_targets(name):
         ]),
         include = ".",
         default_runtime = ":protobuf_python",
-        protoc = "//:protoc",
         srcs_version = "PY2AND3",
         visibility = ["//:__pkg__"],
         deps = [":python_common_test_protos"],
@@ -319,7 +324,6 @@ def build_targets(name):
         srcs = [":copied_conformance_test_files"],
         include = ".",
         default_runtime = "//:protobuf_python",
-        protoc = "//:protoc",
         visibility = [
             "//conformance:__pkg__",
             "//python:__subpackages__",

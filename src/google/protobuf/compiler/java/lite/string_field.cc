@@ -18,6 +18,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/log/absl_check.h"
 #include "absl/strings/str_cat.h"
+#include "google/protobuf/compiler/code_generator_lite.h"
 #include "google/protobuf/compiler/java/context.h"
 #include "google/protobuf/compiler/java/doc_comment.h"
 #include "google/protobuf/compiler/java/field_common.h"
@@ -43,8 +44,7 @@ void SetPrimitiveVariables(
     Context* context) {
   SetCommonFieldVariables(descriptor, info, variables);
 
-  (*variables)["empty_list"] =
-      "com.google.protobuf.GeneratedMessageLite.emptyProtobufList()";
+  (*variables)["empty_list"] = "emptyProtobufList()";
 
   (*variables)["default"] =
       ImmutableDefaultValue(descriptor, name_resolver, context->options());
@@ -62,12 +62,12 @@ void SetPrimitiveVariables(
   (*variables)["deprecation"] =
       descriptor->options().deprecated() ? "@java.lang.Deprecated " : "";
   (*variables)["required"] = descriptor->is_required() ? "true" : "false";
-  if (!context->options().opensource_runtime) {
+  if (!google::protobuf::internal::IsOss()) {
     (*variables)["enforce_utf8"] = CheckUtf8(descriptor) ? "true" : "false";
   }
 
   if (HasHasbit(descriptor)) {
-    if (!context->options().opensource_runtime) {
+    if (!google::protobuf::internal::IsOss()) {
       (*variables)["bit_field_id"] = absl::StrCat(messageBitIndex / 32);
       (*variables)["bit_field_name"] = GetBitFieldNameForBit(messageBitIndex);
       (*variables)["bit_field_mask"] =
@@ -109,7 +109,8 @@ ImmutableStringFieldLiteGenerator::ImmutableStringFieldLiteGenerator(
                         name_resolver_, &variables_, context);
 }
 
-ImmutableStringFieldLiteGenerator::~ImmutableStringFieldLiteGenerator() {}
+ImmutableStringFieldLiteGenerator::~ImmutableStringFieldLiteGenerator() =
+    default;
 
 int ImmutableStringFieldLiteGenerator::GetNumBitsForMessage() const {
   return HasHasbit(descriptor_) ? 1 : 0;
@@ -165,11 +166,10 @@ void ImmutableStringFieldLiteGenerator::GenerateInterfaceMembers(
 
 void ImmutableStringFieldLiteGenerator::GenerateMembers(
     io::Printer* printer) const {
-  if (!context_->options().opensource_runtime) {
-    printer->Print(
-        variables_,
-        "@com.google.protobuf.ProtoField(\n"
-        "  isRequired=$required$)\n");
+  if (!google::protobuf::internal::IsOss()) {
+    printer->Print(variables_,
+                   "@com.google.protobuf.ProtoField(\n"
+                   "  isRequired=$required$)\n");
     if (HasHasbit(descriptor_)) {
       printer->Print(variables_,
                      "@com.google.protobuf.ProtoPresenceCheckedField(\n"
@@ -352,7 +352,7 @@ ImmutableStringOneofFieldLiteGenerator::ImmutableStringOneofFieldLiteGenerator(
 }
 
 ImmutableStringOneofFieldLiteGenerator::
-    ~ImmutableStringOneofFieldLiteGenerator() {}
+    ~ImmutableStringOneofFieldLiteGenerator() = default;
 
 void ImmutableStringOneofFieldLiteGenerator::GenerateMembers(
     io::Printer* printer) const {
@@ -527,7 +527,7 @@ RepeatedImmutableStringFieldLiteGenerator::
 }
 
 RepeatedImmutableStringFieldLiteGenerator::
-    ~RepeatedImmutableStringFieldLiteGenerator() {}
+    ~RepeatedImmutableStringFieldLiteGenerator() = default;
 
 int RepeatedImmutableStringFieldLiteGenerator::GetNumBitsForMessage() const {
   return 0;

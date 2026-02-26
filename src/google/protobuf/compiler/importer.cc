@@ -69,7 +69,7 @@ static bool IsWindowsAbsolutePath(absl::string_view text) {
 #endif
 }
 
-MultiFileErrorCollector::~MultiFileErrorCollector() {}
+MultiFileErrorCollector::~MultiFileErrorCollector() = default;
 
 // This class serves two purposes:
 // - It implements the ErrorCollector interface (used by Tokenizer and Parser)
@@ -78,12 +78,12 @@ MultiFileErrorCollector::~MultiFileErrorCollector() {}
 class SourceTreeDescriptorDatabase::SingleFileErrorCollector
     : public io::ErrorCollector {
  public:
-  SingleFileErrorCollector(const std::string& filename,
+  SingleFileErrorCollector(absl::string_view filename,
                            MultiFileErrorCollector* multi_file_error_collector)
       : filename_(filename),
         multi_file_error_collector_(multi_file_error_collector),
         had_errors_(false) {}
-  ~SingleFileErrorCollector() override {}
+  ~SingleFileErrorCollector() override = default;
 
   bool had_errors() { return had_errors_; }
 
@@ -127,9 +127,9 @@ SourceTreeDescriptorDatabase::SourceTreeDescriptorDatabase(
       using_validation_error_collector_(false),
       validation_error_collector_(this) {}
 
-SourceTreeDescriptorDatabase::~SourceTreeDescriptorDatabase() {}
+SourceTreeDescriptorDatabase::~SourceTreeDescriptorDatabase() = default;
 
-bool SourceTreeDescriptorDatabase::FindFileByName(StringViewArg filename,
+bool SourceTreeDescriptorDatabase::FindFileByName(absl::string_view filename,
                                                   FileDescriptorProto* output) {
   std::unique_ptr<io::ZeroCopyInputStream> input(source_tree_->Open(filename));
   if (input == nullptr) {
@@ -164,12 +164,12 @@ bool SourceTreeDescriptorDatabase::FindFileByName(StringViewArg filename,
 }
 
 bool SourceTreeDescriptorDatabase::FindFileContainingSymbol(
-    StringViewArg symbol_name, FileDescriptorProto* output) {
+    absl::string_view symbol_name, FileDescriptorProto* output) {
   return false;
 }
 
 bool SourceTreeDescriptorDatabase::FindFileContainingExtension(
-    StringViewArg containing_type, int field_number,
+    absl::string_view containing_type, int field_number,
     FileDescriptorProto* output) {
   return false;
 }
@@ -263,7 +263,7 @@ SourceTreeDescriptorDatabase::ValidationErrorCollector::
     : owner_(owner) {}
 
 SourceTreeDescriptorDatabase::ValidationErrorCollector::
-    ~ValidationErrorCollector() {}
+    ~ValidationErrorCollector() = default;
 
 void SourceTreeDescriptorDatabase::ValidationErrorCollector::RecordError(
     absl::string_view filename, absl::string_view element_name,
@@ -307,7 +307,7 @@ Importer::Importer(SourceTree* source_tree,
   database_.RecordErrorsTo(error_collector);
 }
 
-Importer::~Importer() {}
+Importer::~Importer() = default;
 
 const FileDescriptor* Importer::Import(const std::string& filename) {
   return pool_.FindFileByName(filename);
@@ -322,13 +322,13 @@ void Importer::ClearDirectInputFiles() { pool_.ClearDirectInputFiles(); }
 
 // ===================================================================
 
-SourceTree::~SourceTree() {}
+SourceTree::~SourceTree() = default;
 
 std::string SourceTree::GetLastErrorMessage() { return "File not found."; }
 
-DiskSourceTree::DiskSourceTree() {}
+DiskSourceTree::DiskSourceTree() = default;
 
-DiskSourceTree::~DiskSourceTree() {}
+DiskSourceTree::~DiskSourceTree() = default;
 
 // Given a path, returns an equivalent path with these changes:
 // - On Windows, any backslashes are replaced with forward slashes.

@@ -35,7 +35,6 @@
 #include "absl/strings/cord.h"
 #include "absl/types/span.h"
 #include "google/protobuf/arena_test_util.h"
-#include "google/protobuf/internal_visibility_for_testing.h"
 #include "google/protobuf/io/coded_stream.h"
 #include "google/protobuf/io/zero_copy_stream_impl_lite.h"
 #include "google/protobuf/parse_context.h"
@@ -174,6 +173,22 @@ TEST(RepeatedField, Large) {
 
   int expected_usage = 16 * sizeof(int);
   EXPECT_GE(field.SpaceUsedExcludingSelf(), expected_usage);
+}
+
+TEST(RepeatedField, AddRangeThatOverflowsFailsWithATermination) {
+  if (sizeof(void*) < 8) {
+    GTEST_SKIP() << "Disabled on 32-bit builds due to insufficient memory";
+  }
+  RepeatedField<bool> field;
+
+  std::vector<bool> input;
+  // Overflows into "negative" ints.
+  input.resize(size_t{std::numeric_limits<int32_t>::max()} + 1);
+  EXPECT_DEATH(field.Add(input.begin(), input.end()), "Input too large");
+
+  // Overflows the ints completely.
+  input.resize(size_t{std::numeric_limits<uint32_t>::max()} + 1);
+  EXPECT_DEATH(field.Add(input.begin(), input.end()), "Input too large");
 }
 
 template <typename Rep>
@@ -412,20 +427,16 @@ TEST(RepeatedField, ReserveLessThanExisting) {
   EXPECT_LE(20, ReservedSpace(&field));
 }
 
-TEST(RepeatedField, Resize) {
+TEST(RepeatedField, resize) {
   RepeatedField<int> field;
-  field.Resize(2, 1);
-  EXPECT_EQ(2, field.size());
-  field.Resize(5, 2);
-  EXPECT_EQ(5, field.size());
-  field.Resize(4, 3);
-  ASSERT_EQ(4, field.size());
-  EXPECT_EQ(1, field.Get(0));
-  EXPECT_EQ(1, field.Get(1));
-  EXPECT_EQ(2, field.Get(2));
-  EXPECT_EQ(2, field.Get(3));
-  field.Resize(0, 4);
-  EXPECT_TRUE(field.empty());
+  field.resize(2);
+  EXPECT_THAT(field, ElementsAre(0, 0));
+  field.resize(5, 2);
+  EXPECT_THAT(field, ElementsAre(0, 0, 2, 2, 2));
+  field.resize(4, 3);
+  EXPECT_THAT(field, ElementsAre(0, 0, 2, 2));
+  field.resize(0, 4);
+  EXPECT_THAT(field, ElementsAre());
 }
 
 TEST(RepeatedField, ReserveLowerClamp) {
@@ -717,72 +728,67 @@ TEST(RepeatedField, AddAndAssignRanges) {
 }
 
 TEST(RepeatedField, CopyConstructIntegers) {
-  auto token = internal::InternalVisibilityForTesting{};
   using RepeatedType = RepeatedField<int>;
   RepeatedType original;
   original.Add(1);
   original.Add(2);
 
   RepeatedType fields1(original);
-  ASSERT_EQ(2, fields1.size());
-  EXPECT_EQ(1, fields1.Get(0));
-  EXPECT_EQ(2, fields1.Get(1));
+  ASSERT_EQ(fields1.size(), 2);
+  EXPECT_EQ(fields1.Get(0), 1);
+  EXPECT_EQ(fields1.Get(1), 2);
 
-  RepeatedType fields2(token, nullptr, original);
-  ASSERT_EQ(2, fields2.size());
-  EXPECT_EQ(1, fields2.Get(0));
-  EXPECT_EQ(2, fields2.Get(1));
+  auto* fields2 = Arena::Create<RepeatedType>(nullptr, original);
+  ASSERT_EQ(fields2->size(), 2);
+  EXPECT_EQ(fields2->Get(0), 1);
+  EXPECT_EQ(fields2->Get(1), 2);
+
+  delete fields2;
 }
 
 TEST(RepeatedField, CopyConstructCords) {
-  auto token = internal::InternalVisibilityForTesting{};
   using RepeatedType = RepeatedField<absl::Cord>;
   RepeatedType original;
   original.Add(absl::Cord("hello"));
   original.Add(absl::Cord("world and text to avoid SSO"));
 
   RepeatedType fields1(original);
-  ASSERT_EQ(2, fields1.size());
-  EXPECT_EQ("hello", fields1.Get(0));
-  EXPECT_EQ("world and text to avoid SSO", fields1.Get(1));
+  ASSERT_EQ(fields1.size(), 2);
+  EXPECT_EQ(fields1.Get(0), "hello");
+  EXPECT_EQ(fields1.Get(1), "world and text to avoid SSO");
 
-  RepeatedType fields2(token, nullptr, original);
-  ASSERT_EQ(2, fields1.size());
-  EXPECT_EQ("hello", fields1.Get(0));
-  EXPECT_EQ("world and text to avoid SSO", fields2.Get(1));
+  auto* fields2 = Arena::Create<RepeatedType>(nullptr, original);
+  ASSERT_EQ(fields2->size(), 2);
+  EXPECT_EQ(fields2->Get(0), "hello");
+  EXPECT_EQ(fields2->Get(1), "world and text to avoid SSO");
+
+  delete fields2;
 }
 
 TEST(RepeatedField, CopyConstructIntegersWithArena) {
-  auto token = internal::InternalVisibilityForTesting{};
   using RepeatedType = RepeatedField<int>;
   RepeatedType original;
   original.Add(1);
   original.Add(2);
 
   Arena arena;
-  alignas(RepeatedType) char mem[sizeof(RepeatedType)];
-  RepeatedType& fields1 = *new (mem) RepeatedType(token, &arena, original);
-  ASSERT_EQ(2, fields1.size());
-  EXPECT_EQ(1, fields1.Get(0));
-  EXPECT_EQ(2, fields1.Get(1));
+  auto* fields1 = Arena::Create<RepeatedType>(&arena, original);
+  ASSERT_EQ(fields1->size(), 2);
+  EXPECT_EQ(fields1->Get(0), 1);
+  EXPECT_EQ(fields1->Get(1), 2);
 }
 
 TEST(RepeatedField, CopyConstructCordsWithArena) {
-  auto token = internal::InternalVisibilityForTesting{};
   using RepeatedType = RepeatedField<absl::Cord>;
   RepeatedType original;
   original.Add(absl::Cord("hello"));
   original.Add(absl::Cord("world and text to avoid SSO"));
 
   Arena arena;
-  alignas(RepeatedType) char mem[sizeof(RepeatedType)];
-  RepeatedType& fields1 = *new (mem) RepeatedType(token, &arena, original);
-  ASSERT_EQ(2, fields1.size());
-  EXPECT_EQ("hello", fields1.Get(0));
-  EXPECT_EQ("world and text to avoid SSO", fields1.Get(1));
-
-  // Contract requires dtor to be invoked for absl::Cord
-  fields1.~RepeatedType();
+  auto* fields1 = Arena::Create<RepeatedType>(&arena, original);
+  ASSERT_EQ(fields1->size(), 2);
+  EXPECT_EQ(fields1->Get(0), "hello");
+  EXPECT_EQ(fields1->Get(1), "world and text to avoid SSO");
 }
 
 TEST(RepeatedField, IteratorConstruct) {
@@ -1135,6 +1141,24 @@ TEST(RepeatedField, HardenAgainstBadTruncate) {
   }
 }
 
+TEST(RepeatedFieldTest, Erase) {
+  RepeatedField<int32_t> elements;
+  while (elements.size() < 15) {
+    elements.Add(elements.size() % 5);
+  }
+  EXPECT_EQ(3, google::protobuf::erase(elements, 3));
+  EXPECT_THAT(elements, ElementsAre(0, 1, 2, 4, 0, 1, 2, 4, 0, 1, 2, 4));
+}
+
+TEST(RepeatedFieldTest, EraseIf) {
+  RepeatedField<int32_t> elements;
+  while (elements.size() < 15) {
+    elements.Add(elements.size());
+  }
+  EXPECT_EQ(5, google::protobuf::erase_if(elements, [](auto i) { return i % 3 == 0; }));
+  EXPECT_THAT(elements, ElementsAre(1, 2, 4, 5, 7, 8, 10, 11, 13, 14));
+}
+
 #if defined(GTEST_HAS_DEATH_TEST) && (defined(ABSL_HAVE_ADDRESS_SANITIZER) || \
                                       defined(ABSL_HAVE_MEMORY_SANITIZER))
 
@@ -1220,7 +1244,7 @@ TEST(RepeatedField, PoisonsMemoryOnAssign) {
 TEST(RepeatedField, Cleanups) {
   Arena arena;
   auto growth = internal::CleanupGrowth(
-      arena, [&] { Arena::Create<RepeatedField<int>>(&arena); });
+      arena, [&] { (void)Arena::Create<RepeatedField<int>>(&arena); });
   EXPECT_THAT(growth.cleanups, testing::IsEmpty());
 
   void* ptr;
@@ -1231,7 +1255,7 @@ TEST(RepeatedField, Cleanups) {
 
 TEST(RepeatedField, InitialSooCapacity) {
   if (sizeof(void*) == 8) {
-    EXPECT_EQ(RepeatedField<bool>().Capacity(), 3);
+    EXPECT_EQ(RepeatedField<bool>().Capacity(), 8);
     EXPECT_EQ(RepeatedField<int32_t>().Capacity(), 2);
     EXPECT_EQ(RepeatedField<int64_t>().Capacity(), 1);
     EXPECT_EQ(RepeatedField<absl::Cord>().Capacity(), 0);
@@ -1346,30 +1370,20 @@ TEST(RepeatedField, CheckedGetOrAbortTest) {
   RepeatedField<int> field;
 
   // Empty container tests.
-  EXPECT_DEATH(CheckedGetOrAbort(field, -1), "index: -1, size: 0");
-  EXPECT_DEATH(CheckedGetOrAbort(field, field.size()), "index: 0, size: 0");
+  EXPECT_DEATH(internal::CheckedMutableOrAbort(&field, -1),
+               "Index \\(-1\\) out of bounds of container with size \\(0\\)");
+  EXPECT_DEATH(internal::CheckedMutableOrAbort(&field, field.size()),
+               "Index \\(0\\) out of bounds of container with size \\(0\\)");
 
   // Non-empty container tests
   field.Add(5);
   field.Add(4);
-  EXPECT_DEATH(CheckedGetOrAbort(field, 2), "index: 2, size: 2");
-  EXPECT_DEATH(CheckedGetOrAbort(field, -1), "index: -1, size: 2");
+  EXPECT_DEATH(internal::CheckedMutableOrAbort(&field, 2),
+               "Index \\(2\\) out of bounds of container with size \\(2\\)");
+  EXPECT_DEATH(internal::CheckedMutableOrAbort(&field, -1),
+               "Index \\(-1\\) out of bounds of container with size \\(2\\)");
 }
 
-TEST(RepeatedField, CheckedMutableOrAbortTest) {
-  RepeatedField<int> field;
-
-  // Empty container tests.
-  EXPECT_DEATH(CheckedMutableOrAbort(&field, -1), "index: -1, size: 0");
-  EXPECT_DEATH(CheckedMutableOrAbort(&field, field.size()),
-               "index: 0, size: 0");
-
-  // Non-empty container tests
-  field.Add(5);
-  field.Add(4);
-  EXPECT_DEATH(CheckedMutableOrAbort(&field, 2), "index: 2, size: 2");
-  EXPECT_DEATH(CheckedMutableOrAbort(&field, -1), "index: -1, size: 2");
-}
 
 }  // namespace
 

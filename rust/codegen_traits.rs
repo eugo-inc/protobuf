@@ -7,8 +7,12 @@
 
 //! Traits that are implemented by codegen types.
 
+use crate::AsMut;
+use crate::AsView;
+use crate::IntoMut;
+use crate::IntoView;
+use crate::MutProxied;
 use crate::__internal::SealedInternal;
-use crate::{MutProxied, MutProxy, ViewProxy};
 use create::Parse;
 use interop::{MessageMutInterop, MessageViewInterop, OwnedMessageInterop};
 use read::Serialize;
@@ -18,6 +22,7 @@ use write::{Clear, ClearAndParse, CopyFrom, MergeFrom, TakeFrom};
 /// A trait that all generated owned message types implement.
 pub trait Message: SealedInternal
   + MutProxied
+  + for<'a> MutProxied<View<'a> = Self::MessageView<'a>, Mut<'a> = Self::MessageMut<'a>>
   // Create traits:
   + Parse + Default
   // Read traits:
@@ -31,11 +36,21 @@ pub trait Message: SealedInternal
   // C++ Interop:
   + OwnedMessageInterop
 {
+    /// The same type as `<Self as Proxied>::View`. This is defined as a second redundant associated
+    /// type and should not be necessary, but the having this available is a hacky workaround
+    /// that can appease the trait solver in some cases.
+    type MessageView<'msg>: MessageView<'msg, Message = Self>;
+
+    /// The same type as `<Self as Proxied>::Mut`. This is defined as a second redundant associated
+    /// type and should not be necessary, but the having this available is a hacky workaround
+    /// that can appease the trait solver in some cases.
+    type MessageMut<'msg>: MessageMut<'msg, Message = Self>;
 }
 
 /// A trait that all generated message views implement.
 pub trait MessageView<'msg>: SealedInternal
-    + ViewProxy<'msg, Proxied = Self::Message>
+    + AsView<Proxied = Self::Message>
+    + IntoView<'msg, Proxied = Self::Message>
     // Read traits:
     + Debug + Serialize + Default
     // Thread safety:
@@ -45,25 +60,28 @@ pub trait MessageView<'msg>: SealedInternal
     // C++ Interop:
     + MessageViewInterop<'msg>
 {
-    #[doc(hidden)]
+    /// The owned message type that this is a view of.
     type Message: Message;
 }
 
 /// A trait that all generated message muts implement.
 pub trait MessageMut<'msg>: SealedInternal
-    + MutProxy<'msg, MutProxied = Self::Message>
+    + AsView<Proxied = Self::Message>
+    + IntoView<'msg, Proxied = Self::Message>
+    + AsMut<MutProxied = Self::Message>
+    + IntoMut<'msg, MutProxied = Self::Message>
     // Read traits:
     + Debug + Serialize
     // Write traits:
     + Clear + ClearAndParse + TakeFrom + CopyFrom + MergeFrom
     // Thread safety:
-    + Sync
+    + Send + Sync
     // Copy/Clone:
     // (Neither)
     // C++ Interop:
     + MessageMutInterop<'msg>
 {
-    #[doc(hidden)]
+    /// The owned message type that this is a mut of.
     type Message: Message;
 }
 
@@ -74,6 +92,22 @@ pub(crate) mod create {
     pub trait Parse: SealedInternal + Sized {
         fn parse(serialized: &[u8]) -> Result<Self, crate::ParseError>;
         fn parse_dont_enforce_required(serialized: &[u8]) -> Result<Self, crate::ParseError>;
+    }
+
+    impl<T> Parse for T
+    where
+        Self: Default + crate::ClearAndParse,
+    {
+        fn parse(serialized: &[u8]) -> Result<Self, crate::ParseError> {
+            let mut msg = Self::default();
+            crate::ClearAndParse::clear_and_parse(&mut msg, serialized).map(|_| msg)
+        }
+
+        fn parse_dont_enforce_required(serialized: &[u8]) -> Result<Self, crate::ParseError> {
+            let mut msg = Self::default();
+            crate::ClearAndParse::clear_and_parse_dont_enforce_required(&mut msg, serialized)
+                .map(|_| msg)
+        }
     }
 }
 
@@ -258,5 +292,15 @@ pub(crate) mod interop {
         ///     and not mutated while the wrapper is live.
         #[cfg(cpp_kernel)]
         unsafe fn __unstable_wrap_raw_message_mut_unchecked_lifetime(raw: *mut c_void) -> Self;
+    }
+
+    /// Trait related to message descriptors.
+    /// Note that this is only implemented for the types implementing
+    /// `proto2::Message`.
+    #[cfg(all(cpp_kernel, not(lite_runtime)))]
+    pub trait MessageDescriptorInterop {
+        /// Returns a pointer to a `proto2::Descriptor` or `nullptr` if the
+        /// descriptor is not available.
+        fn __unstable_get_descriptor() -> *const std::ffi::c_void;
     }
 }

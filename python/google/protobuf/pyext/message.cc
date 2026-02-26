@@ -515,6 +515,7 @@ bool CheckAndGetInteger(PyObject* arg, T* value) {
   // This definition includes everything with a valid __index__() implementation
   // and shouldn't cast the net too wide.
   if (!strcmp(Py_TYPE(arg)->tp_name, "numpy.ndarray") ||
+      (!strcmp(Py_TYPE(arg)->tp_name, "bool")) ||
       ABSL_PREDICT_FALSE(!PyIndex_Check(arg))) {
     FormatTypeError(arg, "int");
     return false;
@@ -597,18 +598,6 @@ bool CheckAndGetBool(PyObject* arg, bool* value) {
   *value = static_cast<bool>(long_value);
 
   return true;
-}
-
-void CheckIntegerWithBool(PyObject* arg, const FieldDescriptor* field_des) {
-  static int bool_warning_count = 100;
-  if (bool_warning_count > 0 && (!strcmp(Py_TYPE(arg)->tp_name, "bool"))) {
-    --bool_warning_count;
-    std::string error_msg =
-        absl::StrCat(field_des->full_name(),
-                     ": Expected an int, got a boolean. This "
-                     "will be rejected in 7.34.0, please fix it before that");
-    PyErr_WarnEx(PyExc_DeprecationWarning, error_msg.c_str(), 3);
-  }
 }
 
 // Checks whether the given object (which must be "bytes" or "unicode") contains
@@ -764,6 +753,50 @@ static int MaybeReleaseOverlappingOneofField(CMessage* cmessage,
   return 0;
 }
 
+int MaybeReleaseOneofBeforeMerge(CMessage* self, const Message& other) {
+  if (!self->composite_fields) {
+    return 0;
+  }
+
+  Message* message = self->message;
+  const Reflection* reflection = message->GetReflection();
+  PyMessageFactory* factory = GetFactoryForMessage(self);
+  std::vector<const FieldDescriptor*> fields_to_release;
+  std::vector<const FieldDescriptor*> nested_message_fields;
+  for (const auto& item : *self->composite_fields) {
+    const FieldDescriptor* descriptor = item.first;
+    if (descriptor->cpp_type() == FieldDescriptor::CPPTYPE_MESSAGE &&
+        // For normal repeated message, MergeFrom will append the messages.
+        // For message map with same keys, it is overwrite
+        !descriptor->is_repeated() &&
+        reflection->HasField(*message, descriptor)) {
+      if (reflection->HasField(other, descriptor)) {
+        nested_message_fields.push_back(descriptor);
+      } else {
+        // Release oneof message if the other message has set a different oneof
+        const OneofDescriptor* oneof = descriptor->containing_oneof();
+        if (oneof && reflection->HasOneof(other, oneof)) {
+          fields_to_release.push_back(descriptor);
+        }
+      }
+    }
+  }
+  for (const FieldDescriptor* field : nested_message_fields) {
+    if (MaybeReleaseOneofBeforeMerge(
+            reinterpret_cast<CMessage*>(
+                self->composite_fields->find(field)->second),
+            reflection->GetMessage(other, field, factory->message_factory)) <
+        0) {
+      return -1;
+    }
+  }
+  for (const FieldDescriptor* field : fields_to_release) {
+    if (InternalReleaseFieldByDescriptor(self, field) < 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
 // After a Merge, visit every sub-message that was read-only, and
 // eventually update their pointer if the Merge operation modified them.
 int FixupMessageAfterMerge(CMessage* self) {
@@ -986,6 +1019,53 @@ int DeleteRepeatedField(CMessage* self, const FieldDescriptor* field_descriptor,
   return 0;
 }
 
+int InitWKTOrMerge(const Descriptor* descriptor, PyObject* py_message,
+                   PyObject* value) {
+  CMessage* cmessage = reinterpret_cast<CMessage*>(py_message);
+  AssureWritable(cmessage);
+  if (PyObject_TypeCheck(value, CMessage_Type)) {
+    ScopedPyObjectPtr merged(MergeFrom(cmessage, value));
+    if (merged == nullptr) {
+      return -1;
+    }
+    return 0;
+  }
+  if (PyDict_Check(value) &&
+      (descriptor->well_known_type() == Descriptor::WELLKNOWNTYPE_STRUCT)) {
+    ScopedPyObjectPtr ok(PyObject_CallMethod(py_message, "update", "O", value));
+    if (ok.get() == nullptr && PyDict_Size(value) == 1) {
+      ScopedPyObjectPtr fields_str(PyUnicode_FromString("fields"));
+      if (PyDict_Contains(value, fields_str.get())) {
+        // Fallback to init as normal message field.
+        PyErr_Clear();
+        PyObject* tmp = Clear(cmessage);
+        Py_DECREF(tmp);
+        if (InitAttributes(cmessage, nullptr, value) < 0) {
+          return -1;
+        }
+      }
+    }
+    return 0;
+  }
+
+  if (descriptor->well_known_type() != Descriptor::WELLKNOWNTYPE_UNSPECIFIED &&
+      PyObject_HasAttrString(py_message, "_internal_assign")) {
+    ScopedPyObjectPtr ok(
+        PyObject_CallMethod(py_message, "_internal_assign", "O", value));
+    if (ok.get() == nullptr) {
+      return -1;
+    }
+    return 0;
+  }
+
+  PyErr_Format(PyExc_TypeError,
+               "Parameter to initialize message field must be "
+               "dict or instance of same class: expected %s got %s.",
+               std::string(descriptor->full_name()).c_str(),
+               Py_TYPE(value)->tp_name);
+  return -1;
+}
+
 // Initializes fields of a message. Used in constructors.
 int InitAttributes(CMessage* self, PyObject* args, PyObject* kwargs) {
   if (args != nullptr && PyTuple_Size(args) != 0) {
@@ -1084,19 +1164,24 @@ int InitAttributes(CMessage* self, PyObject* args, PyObject* kwargs) {
         }
         ScopedPyObjectPtr next;
         while ((next.reset(PyIter_Next(iter.get()))) != nullptr) {
-          PyObject* kwargs = (PyDict_Check(next.get()) ? next.get() : nullptr);
-          ScopedPyObjectPtr new_msg(
-              repeated_composite_container::Add(rc_container, nullptr, kwargs));
+          if ((PyDict_Check(next.get())) &&
+              (descriptor->message_type()->well_known_type() !=
+               Descriptor::WELLKNOWNTYPE_STRUCT)) {
+            ScopedPyObjectPtr new_msg(repeated_composite_container::Add(
+                rc_container, nullptr, next.get()));
+            if (new_msg == nullptr) {
+              return -1;
+            }
+            continue;
+          }
+          ScopedPyObjectPtr new_msg(repeated_composite_container::Add(
+              rc_container, nullptr, nullptr));
           if (new_msg == nullptr) {
             return -1;
           }
-          if (kwargs == nullptr) {
-            // next was not a dict, it's a message we need to merge
-            ScopedPyObjectPtr merged(MergeFrom(
-                reinterpret_cast<CMessage*>(new_msg.get()), next.get()));
-            if (merged.get() == nullptr) {
-              return -1;
-            }
+          if (InitWKTOrMerge(descriptor->message_type(), new_msg.get(),
+                             next.get()) < 0) {
+            return -1;
           }
         }
         if (PyErr_Occurred()) {
@@ -1142,53 +1227,19 @@ int InitAttributes(CMessage* self, PyObject* args, PyObject* kwargs) {
         return -1;
       }
       CMessage* cmessage = reinterpret_cast<CMessage*>(message.get());
-      if (PyDict_Check(value)) {
+      if (PyDict_Check(value) &&
+          (descriptor->message_type()->well_known_type() !=
+           Descriptor::WELLKNOWNTYPE_STRUCT)) {
         // Make the message exist even if the dict is empty.
         AssureWritable(cmessage);
-        if (descriptor->message_type()->well_known_type() ==
-            Descriptor::WELLKNOWNTYPE_STRUCT) {
-          ScopedPyObjectPtr ok(PyObject_CallMethod(
-              reinterpret_cast<PyObject*>(cmessage), "update", "O", value));
-          if (ok.get() == nullptr && PyDict_Size(value) == 1) {
-            ScopedPyObjectPtr fields_str(PyUnicode_FromString("fields"));
-            if (PyDict_Contains(value, fields_str.get())) {
-              // Fallback to init as normal message field.
-              PyErr_Clear();
-              PyObject* tmp = Clear(cmessage);
-              Py_DECREF(tmp);
-              if (InitAttributes(cmessage, nullptr, value) < 0) {
-                return -1;
-              }
-            }
-          }
-        } else {
-          if (InitAttributes(cmessage, nullptr, value) < 0) {
-            return -1;
-          }
-        }
-      } else if (PyObject_TypeCheck(value, CMessage_Type)) {
-        ScopedPyObjectPtr merged(MergeFrom(cmessage, value));
-        if (merged == nullptr) {
-          return -1;
-        }
-      } else if (descriptor->message_type()->well_known_type() !=
-                     Descriptor::WELLKNOWNTYPE_UNSPECIFIED &&
-                 PyObject_HasAttrString(reinterpret_cast<PyObject*>(cmessage),
-                                        "_internal_assign")) {
-        AssureWritable(cmessage);
-        ScopedPyObjectPtr ok(
-            PyObject_CallMethod(reinterpret_cast<PyObject*>(cmessage),
-                                "_internal_assign", "O", value));
-        if (ok.get() == nullptr) {
+        if (InitAttributes(cmessage, nullptr, value) < 0) {
           return -1;
         }
       } else {
-        PyErr_Format(PyExc_TypeError,
-                     "Parameter to initialize message field must be "
-                     "dict or instance of same class: expected %s got %s.",
-                     std::string(descriptor->full_name()).c_str(),
-                     Py_TYPE(value)->tp_name);
-        return -1;
+        if (InitWKTOrMerge(descriptor->message_type(), message.get(), value) <
+            0) {
+          return -1;
+        }
       }
     } else {
       ScopedPyObjectPtr new_val;
@@ -1831,6 +1882,10 @@ PyObject* MergeFrom(CMessage* self, PyObject* arg) {
   }
   AssureWritable(self);
 
+  if (MaybeReleaseOneofBeforeMerge(self, *other_message->message) < 0) {
+    return nullptr;
+  }
+
   self->message->MergeFrom(*other_message->message);
   // Child message might be lazily created before MergeFrom. Make sure they
   // are mutable at this point if child messages are really created.
@@ -2025,11 +2080,11 @@ static PyObject* ListFields(CMessage* self) {
       if (extension_field == nullptr) {
         return nullptr;
       }
-      // With C++ descriptors, the field can always be retrieved, but for
-      // unknown extensions which have not been imported in Python code, there
-      // is no message class and we cannot retrieve the value.
-      // TODO: consider building the class on the fly!
-      if (fields[i]->message_type() != nullptr &&
+      // When using the default descriptor pool, avoid exposing extensions that
+      // happened to be linked in from C++ but not imported via Python.  This is
+      // for consistency with the pure Python implementation.
+      if (fields[i]->file()->pool() == GetDefaultDescriptorPool()->pool &&
+          fields[i]->message_type() != nullptr &&
           message_factory::GetMessageClass(GetFactoryForMessage(self),
                                            fields[i]->message_type()) ==
               nullptr) {
@@ -2267,25 +2322,21 @@ int InternalSetNonOneofScalar(Message* message,
   switch (field_descriptor->cpp_type()) {
     case FieldDescriptor::CPPTYPE_INT32: {
       PROTOBUF_CHECK_GET_INT32(arg, value, -1);
-      CheckIntegerWithBool(arg, field_descriptor);
       reflection->SetInt32(message, field_descriptor, value);
       break;
     }
     case FieldDescriptor::CPPTYPE_INT64: {
       PROTOBUF_CHECK_GET_INT64(arg, value, -1);
-      CheckIntegerWithBool(arg, field_descriptor);
       reflection->SetInt64(message, field_descriptor, value);
       break;
     }
     case FieldDescriptor::CPPTYPE_UINT32: {
       PROTOBUF_CHECK_GET_UINT32(arg, value, -1);
-      CheckIntegerWithBool(arg, field_descriptor);
       reflection->SetUInt32(message, field_descriptor, value);
       break;
     }
     case FieldDescriptor::CPPTYPE_UINT64: {
       PROTOBUF_CHECK_GET_UINT64(arg, value, -1);
-      CheckIntegerWithBool(arg, field_descriptor);
       reflection->SetUInt64(message, field_descriptor, value);
       break;
     }
@@ -2313,7 +2364,6 @@ int InternalSetNonOneofScalar(Message* message,
     }
     case FieldDescriptor::CPPTYPE_ENUM: {
       PROTOBUF_CHECK_GET_INT32(arg, value, -1);
-      CheckIntegerWithBool(arg, field_descriptor);
       if (!field_descriptor->legacy_enum_field_treated_as_closed()) {
         reflection->SetEnumValue(message, field_descriptor, value);
       } else {

@@ -101,11 +101,11 @@ class PROTOBUF_EXPORT SourceTreeDescriptorDatabase : public DescriptorDatabase {
   }
 
   // implements DescriptorDatabase -----------------------------------
-  bool FindFileByName(const std::string& filename,
+  bool FindFileByName(absl::string_view filename,
                       FileDescriptorProto* output) override;
-  bool FindFileContainingSymbol(const std::string& symbol_name,
+  bool FindFileContainingSymbol(absl::string_view symbol_name,
                                 FileDescriptorProto* output) override;
-  bool FindFileContainingExtension(const std::string& containing_type,
+  bool FindFileContainingExtension(absl::string_view containing_type,
                                    int field_number,
                                    FileDescriptorProto* output) override;
 
@@ -186,16 +186,6 @@ class PROTOBUF_EXPORT Importer {
                           bool unused_import_is_error = false);
   void ClearDirectInputFiles();
 
-#if !defined(PROTOBUF_FUTURE_RENAME_ADD_UNUSED_IMPORT) && !defined(SWIG)
-  ABSL_DEPRECATED("Use AddDirectInputFile")
-  void AddUnusedImportTrackFile(absl::string_view file_name,
-                                bool is_error = false) {
-    AddDirectInputFile(file_name, is_error);
-  }
-  ABSL_DEPRECATED("Use AddDirectInputFile")
-  void ClearUnusedImportTrackFiles() { ClearDirectInputFiles(); }
-#endif  // !PROTOBUF_FUTURE_RENAME_ADD_UNUSED_IMPORT && !SWIG
-
 
  private:
   SourceTreeDescriptorDatabase database_;
@@ -206,7 +196,7 @@ class PROTOBUF_EXPORT Importer {
 // it reports them to a MultiFileErrorCollector.
 class PROTOBUF_EXPORT MultiFileErrorCollector {
  public:
-  MultiFileErrorCollector() {}
+  MultiFileErrorCollector() = default;
   MultiFileErrorCollector(const MultiFileErrorCollector&) = delete;
   MultiFileErrorCollector& operator=(const MultiFileErrorCollector&) = delete;
   virtual ~MultiFileErrorCollector();
@@ -228,7 +218,7 @@ class PROTOBUF_EXPORT MultiFileErrorCollector {
 // below.
 class PROTOBUF_EXPORT SourceTree {
  public:
-  SourceTree() {}
+  SourceTree() = default;
   SourceTree(const SourceTree&) = delete;
   SourceTree& operator=(const SourceTree&) = delete;
   virtual ~SourceTree();

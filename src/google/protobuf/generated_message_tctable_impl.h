@@ -15,6 +15,7 @@
 #include <type_traits>
 
 #include "absl/base/optimization.h"
+#include "absl/log/absl_check.h"
 #include "absl/log/absl_log.h"
 #include "absl/status/status.h"
 #include "absl/strings/cord.h"
@@ -43,10 +44,10 @@ class UnknownFieldSet;
 
 namespace internal {
 
+
 enum {
-  kInlinedStringAuxIdx = 0,
-  kSplitOffsetAuxIdx = 1,
-  kSplitSizeAuxIdx = 2,
+  kSplitOffsetAuxIdx = 0,
+  kSplitSizeAuxIdx = 1,
 };
 
 // Field layout enums.
@@ -154,7 +155,6 @@ enum TransformValidation : uint16_t {
   kTvEnum      = 2 << kTvShift,  // validate using ValidateEnum()
   kTvRange     = 3 << kTvShift,  // validate using FieldAux::enum_range
   // String fields:
-  kTvUtf8Debug = 1 << kTvShift,  // proto2
   kTvUtf8      = 2 << kTvShift,  // proto3
 
   // Message fields:
@@ -241,7 +241,6 @@ enum FieldType : uint16_t {
 
   // String types:
   kBytes           = 0 | kFkString | kFmtArray,
-  kRawString       = 0 | kFkString | kFmtUtf8  | kTvUtf8Debug,
   kUtf8String      = 0 | kFkString | kFmtUtf8  | kTvUtf8,
 
   // Message types:
@@ -748,7 +747,7 @@ class PROTOBUF_EXPORT TcParser final {
       uint16_t type_card, TcParseTableBase::FieldAux aux);
   static MessageLite* NewMessage(const TcParseTableBase* table, Arena* arena);
   static MessageLite* AddMessage(const TcParseTableBase* table,
-                                 RepeatedPtrFieldBase& field);
+                                 RepeatedPtrFieldBase& field, Arena* arena);
 
   template <typename T>
   static inline const T& GetFieldAtMaybeSplit(const void* x, size_t offset,
@@ -856,6 +855,9 @@ class PROTOBUF_EXPORT TcParser final {
   template <typename FieldType>
   PROTOBUF_CC static const char* FastVarintS1(PROTOBUF_TC_PARAM_DECL);
 
+  static LazyEagerVerifyFnType GetLazyEagerVerifyFn(
+      const google::protobuf::internal::TcParseTableBase* table, uint32_t field_number);
+
   friend class GeneratedTcTableLiteTest;
   static void* MaybeGetSplitBase(MessageLite* msg, bool is_split,
                                  const TcParseTableBase* table);
@@ -888,11 +890,22 @@ class PROTOBUF_EXPORT TcParser final {
   static PROTOBUF_ALWAYS_INLINE void SyncHasbits(
       MessageLite* msg, uint64_t hasbits, const TcParseTableBase* table) {
     const uint32_t has_bits_offset = table->has_bits_offset;
-    if (has_bits_offset) {
-      // Only the first 32 has-bits are updated. Nothing above those is stored,
-      // but e.g. messages without has-bits update the upper bits.
-      RefAt<uint32_t>(msg, has_bits_offset) |= static_cast<uint32_t>(hasbits);
+    if constexpr (internal::PerformDebugChecks()) {
+      // We always have some offset to write to.
+      ABSL_DCHECK_NE(has_bits_offset, 0);
+      // and if we actually have has bits to push, we should be pushing to a
+      // real HasBits.
+      // `has_bits_offset` points to `_cached_size_` when we have
+      // no has bits, just to point somewhere and avoid a branch here.
+      // In that case we would be doing `|= 0` so the target just need to be
+      // some valid space in the message.
+      if (static_cast<uint32_t>(hasbits) != 0) {
+        ABSL_DCHECK_NE(has_bits_offset, table->class_data->cached_size_offset);
+      }
     }
+    // Only the first 32 has-bits are updated. Nothing above those is stored,
+    // but e.g. messages without has-bits update the upper bits.
+    RefAt<uint32_t>(msg, has_bits_offset) |= static_cast<uint32_t>(hasbits);
   }
 
   PROTOBUF_CC static const char* TagDispatch(PROTOBUF_TC_PARAM_NO_DATA_DECL);
@@ -1026,8 +1039,8 @@ class PROTOBUF_EXPORT TcParser final {
   PROTOBUF_CC static inline const char* RepeatedCord(PROTOBUF_TC_PARAM_DECL);
 
   static inline const char* ParseRepeatedStringOnce(
-      const char* ptr, SerialArena* serial_arena, ParseContext* ctx,
-      RepeatedPtrField<std::string>& field);
+      const char* ptr, Arena* arena, SerialArena* serial_arena,
+      ParseContext* ctx, RepeatedPtrField<std::string>& field);
 
   PROTOBUF_NOINLINE
   static void AddUnknownEnum(MessageLite* msg, const TcParseTableBase* table,
@@ -1035,8 +1048,9 @@ class PROTOBUF_EXPORT TcParser final {
 
   static void WriteMapEntryAsUnknown(MessageLite* msg,
                                      const TcParseTableBase* table,
-                                     UntypedMapBase& map, uint32_t tag,
-                                     NodeBase* node, MapAuxInfo map_info);
+                                     UntypedMapBase& map, Arena* arena,
+                                     uint32_t tag, NodeBase* node,
+                                     MapAuxInfo map_info);
 
   static const char* ParseOneMapEntry(NodeBase* node, const char* ptr,
                                       ParseContext* ctx,

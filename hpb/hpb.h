@@ -17,7 +17,9 @@
 #include "hpb/extension.h"
 #include "hpb/internal/template_help.h"
 #include "hpb/multibackend.h"
+#include "hpb/options.h"
 #include "hpb/ptr.h"
+#include "hpb/status.h"
 
 #if HPB_INTERNAL_BACKEND == HPB_INTERNAL_BACKEND_UPB
 #include "hpb/backend/upb/upb.h"
@@ -62,18 +64,27 @@ void ClearMessage(internal::PtrOrRawMutable<T> message) {
   backend::ClearMessage(message);
 }
 
+// Note that the default extension registry is the the generated registry.
+template <typename T>
+hpb::StatusOr<T> Parse(absl::string_view bytes, ParseOptions options) {
+  return backend::Parse<T>(bytes, options);
+}
+
 template <typename T>
 ABSL_MUST_USE_RESULT bool Parse(internal::PtrOrRaw<T> message,
                                 absl::string_view bytes,
                                 const ExtensionRegistry& extension_registry =
-                                    ExtensionRegistry::empty_registry()) {
+                                    ExtensionRegistry::generated_registry()) {
   return backend::Parse(message, bytes, extension_registry);
 }
 
+// Deprecated. Use the overload that returns hpb::StatusOr<T> instead.
+// Note that the default extension registry is the empty registry.
 template <typename T>
+ABSL_DEPRECATED("Prefer the overload that returns hpb::StatusOr<T>")
 absl::StatusOr<T> Parse(absl::string_view bytes,
                         const ExtensionRegistry& extension_registry =
-                            ExtensionRegistry::empty_registry()) {
+                            ExtensionRegistry::generated_registry()) {
   return backend::Parse<T>(bytes, extension_registry);
 }
 

@@ -12,16 +12,16 @@ load(
 )
 load("//bazel:proto_library.bzl", "proto_library")
 load(
-    "//bazel:upb_proto_library.bzl",
-    "upb_c_proto_library",
-)
-load(
     "//hpb/bazel:hpb_proto_library.bzl",
     "hpb_proto_library",
 )
 load(
-    "//upb/bazel:build_defs.bzl",
-    "UPB_DEFAULT_CPPOPTS",
+    "//upb/bazel:upb_minitable_proto_library.bzl",
+    "upb_minitable_proto_library",
+)
+load(
+    "//upb/bazel:upb_proto_library.bzl",
+    "upb_c_proto_library",
 )
 
 package(default_applicable_licenses = ["//:license"])
@@ -53,6 +53,13 @@ proto_library(
 )
 
 proto_library(
+    name = "null_enum_proto",
+    srcs = [
+        "null_enum.proto",
+    ],
+)
+
+proto_library(
     name = "no_package_enum_user_proto",
     srcs = [
         "no_package_enum_user.proto",
@@ -62,6 +69,14 @@ proto_library(
 
 upb_c_proto_library(
     name = "test_model_upb_proto",
+    visibility = [
+        "//hpb:__subpackages__",
+    ],
+    deps = [":test_model_proto"],
+)
+
+upb_minitable_proto_library(
+    name = "test_model_upb_minitable_proto",
     visibility = [
         "//hpb:__subpackages__",
     ],
@@ -80,6 +95,12 @@ hpb_proto_library(
     name = "naming_conflict_hpb_proto",
     visibility = ["//visibility:private"],
     deps = [":naming_conflict_proto"],
+)
+
+hpb_proto_library(
+    name = "null_enum_hpb_proto",
+    visibility = ["//visibility:private"],
+    deps = [":null_enum_proto"],
 )
 
 hpb_proto_library(
@@ -150,7 +171,6 @@ hpb_proto_library(
 cc_test(
     name = "test_generated_cc_code",
     srcs = ["test_generated.cc"],
-    copts = UPB_DEFAULT_CPPOPTS,
     deps = [
         # google_only_begin_legacy_marker
         ":legacy_name_test_proto",
@@ -160,6 +180,7 @@ cc_test(
         ":test_model_hpb_proto",
         ":test_model_upb_proto",
         ":naming_conflict_hpb_proto",
+        ":null_enum_hpb_proto",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
         "@abseil-cpp//absl/status:statusor",
@@ -168,9 +189,11 @@ cc_test(
         "//hpb/backend/upb:interop",
         "//hpb:arena",
         "//hpb:extension",
+        "//hpb:options",
         "//hpb:requires",
         "//hpb:ptr",
         "//hpb:repeated_field",
+        "//hpb:status",
         "//upb/mem",
         "//upb/mini_table",
     ],
@@ -179,16 +202,18 @@ cc_test(
 cc_test(
     name = "extension_test",
     srcs = ["extension_test.cc"],
-    copts = UPB_DEFAULT_CPPOPTS,
     deps = [
         ":test_model_hpb_proto",
         ":test_model_upb_proto",
         "//hpb",
         "//hpb:arena",
         "//hpb:extension",
+        "//hpb:options",
         "//hpb:requires",
+        "//hpb:status",
         "//hpb/backend/upb:interop",
         "//upb/mem",
+        "@abseil-cpp//absl/status:status_matchers",
         "@abseil-cpp//absl/strings:string_view",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
@@ -198,10 +223,11 @@ cc_test(
 cc_test(
     name = "repeated_test",
     srcs = ["repeated_test.cc"],
-    copts = UPB_DEFAULT_CPPOPTS,
     deps = [
         ":test_model_hpb_proto",
         ":test_model_upb_proto",
+        "//hpb:arena",
+        "//hpb:ptr",
         "//hpb:requires",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
@@ -211,7 +237,6 @@ cc_test(
 cc_test(
     name = "test_hpb_bzl_alias",
     srcs = ["test_hpb_bzl_alias.cc"],
-    copts = UPB_DEFAULT_CPPOPTS,
     deps = [
         ":set_alias_no_srcs_hpb_proto",
         "//hpb",
@@ -224,7 +249,6 @@ cc_test(
 cc_test(
     name = "multibackend_test",
     srcs = ["multibackend_test.cc"],
-    copts = UPB_DEFAULT_CPPOPTS,
     deps = [
         ":test_model_hpb_proto",
         "//hpb",

@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <utility>
 
 #include "absl/status/status.h"
@@ -199,6 +200,8 @@ class JsonLexer {
     JsonLocation loc = json_loc_;
     auto taken = stream_.Take(len);
     RETURN_IF_ERROR(taken.status());
+    json_loc_.offset += len;
+    json_loc_.col += len;
     return LocationWith<MaybeOwnedString>{*std::move(taken), loc};
   }
 
@@ -207,6 +210,9 @@ class JsonLexer {
     JsonLocation loc = json_loc_;
     auto taken = stream_.TakeWhile(std::move(p));
     RETURN_IF_ERROR(taken.status());
+    size_t len = taken->AsView().size();
+    json_loc_.offset += len;
+    json_loc_.col += len;
     return LocationWith<MaybeOwnedString>{*std::move(taken), loc};
   }
 
@@ -245,6 +251,11 @@ class JsonLexer {
     json_loc_.col += static_cast<int>(bytes);
     return absl::OkStatus();
   }
+
+  // Slow path for ParseUtf8. `on_heap` contains the portion of the value
+  // which was already parsed by the fast path before it decided to bail out.
+  absl::StatusOr<LocationWith<MaybeOwnedString>> ParseUtf8Slow(
+      bool is_single_quote, std::string on_heap, JsonLocation loc);
 
   ZeroCopyBufferedStream stream_;
 

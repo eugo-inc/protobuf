@@ -6,12 +6,8 @@
 # https://developers.google.com/open-source/licenses/bsd
 
 load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
-load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_library")
 load("//bazel/toolchains:proto_lang_toolchain.bzl", "proto_lang_toolchain")
-load(
-    "//upb/bazel:build_defs.bzl",
-    "UPB_DEFAULT_CPPOPTS",
-)
 
 package(default_applicable_licenses = ["//:license"])
 
@@ -22,7 +18,6 @@ cc_binary(
     srcs = [
         "protoc-gen-hpb.cc",
     ],
-    copts = UPB_DEFAULT_CPPOPTS,
     malloc = "@bazel_tools//tools/cpp:malloc",
     visibility = ["//visibility:public"],
     deps = [
@@ -64,7 +59,6 @@ cc_library(
     hdrs = [
         "generator.h",
     ],
-    copts = UPB_DEFAULT_CPPOPTS,
     visibility = ["//visibility:private"],
     deps = [
         ":context",
@@ -79,7 +73,9 @@ cc_library(
         "//upb_generator:file_layout",
         "//upb_generator/c:names",
         "//upb_generator/minitable:names",
+        "@abseil-cpp//absl/container:flat_hash_map",
         "@abseil-cpp//absl/container:flat_hash_set",
+        "@abseil-cpp//absl/numeric:bits",
         "@abseil-cpp//absl/strings",
     ],
 )
@@ -118,6 +114,7 @@ cc_library(
         ":keywords",
         "//src/google/protobuf",
         "//src/google/protobuf/compiler:code_generator",
+        "@abseil-cpp//absl/log:absl_check",
         "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/strings:string_view",
     ],
@@ -130,6 +127,7 @@ cc_library(
         "//src/google/protobuf",
         "//src/google/protobuf/io",
         "//src/google/protobuf/io:printer",
+        "//upb/port",
         "//upb/reflection",
         "//upb_generator/common:cpp_to_upb_def",
         "@abseil-cpp//absl/strings",

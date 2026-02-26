@@ -15,6 +15,7 @@ import com.google.protobuf.MessageReflection.MergeTarget;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.CharBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -665,7 +666,8 @@ public final class TextFormat {
     // field, b) via an enum field marked with debug_redact=true that is within the proto's
     // FieldOptions, either directly or indirectly via a message option.
     private boolean shouldRedact(final FieldDescriptor field, TextGenerator generator) {
-      return enablingSafeDebugFormat && field.isSensitive();
+      FieldDescriptor.RedactionState state = field.getRedactionState();
+      return enablingSafeDebugFormat && state.redact;
     }
 
     /** Like {@code print()}, but writes directly to a {@code String} and returns it. */
@@ -1945,6 +1947,7 @@ public final class TextFormat {
        *
        * @throws IllegalArgumentException if a registry is already set.
        */
+      @CanIgnoreReturnValue
       public Builder setTypeRegistry(TypeRegistry typeRegistry) {
         this.typeRegistry = typeRegistry;
         return this;
@@ -1958,6 +1961,7 @@ public final class TextFormat {
        * <p>Use of this parameter is discouraged which may hide some errors (e.g. spelling error on
        * field name).
        */
+      @CanIgnoreReturnValue
       public Builder setAllowUnknownFields(boolean allowUnknownFields) {
         this.allowUnknownFields = allowUnknownFields;
         return this;
@@ -2221,9 +2225,9 @@ public final class TextFormat {
         // .proto file, which actually matches their type names, not their field
         // names.
         if (field == null) {
-          // Explicitly specify US locale so that this code does not break when
+          // Explicitly specify the 'neutral' ROOT locale so that this code does not break when
           // executing in Turkey.
-          final String lowerName = name.toLowerCase(Locale.US);
+          final String lowerName = name.toLowerCase(Locale.ROOT);
           field = type.findFieldByName(lowerName);
           // If the case-insensitive match worked but the field is NOT a group,
           if (field != null && !field.isGroupLike()) {
@@ -2847,7 +2851,7 @@ public final class TextFormat {
                     throw new InvalidEscapeSequenceException(
                         "Invalid escape sequence: '\\u' refers to a surrogate");
                   }
-                  byte[] chUtf8 = Character.toString(ch).getBytes(Internal.UTF_8);
+                  byte[] chUtf8 = Character.toString(ch).getBytes(StandardCharsets.UTF_8);
                   System.arraycopy(chUtf8, 0, result, pos, chUtf8.length);
                   pos += chUtf8.length;
                   i += 3;
@@ -2892,7 +2896,7 @@ public final class TextFormat {
                 }
                 int[] codepoints = new int[1];
                 codepoints[0] = codepoint;
-                byte[] chUtf8 = new String(codepoints, 0, 1).getBytes(Internal.UTF_8);
+                byte[] chUtf8 = new String(codepoints, 0, 1).getBytes(StandardCharsets.UTF_8);
                 System.arraycopy(chUtf8, 0, result, pos, chUtf8.length);
                 pos += chUtf8.length;
                 i += 7;
@@ -2935,7 +2939,7 @@ public final class TextFormat {
    * it's weird.
    */
   static String escapeText(final String input) {
-    return escapeBytes(ByteString.copyFromUtf8(input));
+    return TextFormatEscaper.escapeText(input);
   }
 
   /** Escape double quotes and backslashes in a String for emittingUnicode output of a message. */

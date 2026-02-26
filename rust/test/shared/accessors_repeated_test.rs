@@ -5,6 +5,11 @@
 // license that can be found in the LICENSE file or at
 // https://developers.google.com/open-source/licenses/bsd
 
+#[cfg(not(bzl))]
+mod protos;
+#[cfg(not(bzl))]
+use protos::*;
+
 use googletest::prelude::*;
 use paste::paste;
 use protobuf::{proto, AsMut, AsView, Repeated};
@@ -248,6 +253,15 @@ fn test_repeated_message_setter() {
     let mut nested = NestedMessage::new();
     nested.set_bb(1);
     msg.set_repeated_nested_message([nested].into_iter());
+    assert_that!(msg.repeated_nested_message().get(0).unwrap().bb(), eq(1));
+}
+
+#[gtest]
+fn test_repeated_message_push_default() {
+    let mut msg = TestAllTypes::new();
+    let mut repeated = msg.repeated_nested_message_mut();
+    let mut nested = repeated.push_default();
+    nested.set_bb(1);
     assert_that!(msg.repeated_nested_message().get(0).unwrap().bb(), eq(1));
 }
 
