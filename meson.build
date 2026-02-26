@@ -344,6 +344,8 @@ install_subdir(
         'protobuf/pyext/scoped_pyobject_ptr.h',
         'protobuf/pyext/unknown_field_set.cc',
         'protobuf/pyext/unknown_field_set.h',
+        'protobuf/pyext/free_threading_mutex.h',
+        'protobuf/pyext/weak_value_map.h',
 
         # Internal
         # Test files, .proto fixtures, C++ sources, and templates.
@@ -381,6 +383,8 @@ install_subdir(
         'protobuf/internal/proto_json_test.py',
         'protobuf/internal/proto_test.py',
         'protobuf/internal/proto_text_test.py', # NOTE: upstream wheel accidentally includes this test file, but we exclude it intentionally.
+        'protobuf/internal/proto_api_test.py',
+        'protobuf/internal/proto_api_test_ext.cc',
         'protobuf/internal/pybind11_test_module.cc',
         'protobuf/internal/python_edition_defaults.py.template',
         'protobuf/internal/python_protobuf.cc',

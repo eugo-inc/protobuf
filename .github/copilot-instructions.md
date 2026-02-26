@@ -30,18 +30,52 @@ You are an expert maintainer of Eugo's fork of [protocolbuffers/protobuf](https:
 
 ### native/protobuf (C/C++ libraries)
 ```bash
-# Standard upstream CMake build — installs to /usr/local
-cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j$(nproc)
-cmake --install build
+# Eugo CMake build — EUGO_CMAKE_COMMON_OPTIONS sets compiler, standards (gnu17/gnu++23), etc.
+cmake .. ${EUGO_CMAKE_COMMON_OPTIONS} \
+  -DCMAKE_INSTALL_PREFIX="/tmp/eugo/__debug/protobuf" \
+  -Dprotobuf_VERBOSE=OFF \
+  -Dprotobuf_BUILD_SHARED_LIBS=ON \
+  -DBUILD_SHARED_LIBS=ON \
+  -Dprotobuf_USE_UNITY_BUILD=OFF \
+  -Dprotobuf_DISABLE_RTTI=OFF \
+  -Dprotobuf_INSTALL=ON \
+  -Dprotobuf_MODULE_COMPATIBLE=ON \
+  -Dprotobuf_BUILD_LIBPROTOC=ON \
+  -Dprotobuf_BUILD_PROTOBUF_BINARIES=ON \
+  -Dprotobuf_BUILD_PROTOC_BINARIES=ON \
+  -Dprotobuf_BUILD_LIBUPB=ON \
+  -Dutf8_range_ENABLE_INSTALL=ON \
+  -Dprotobuf_WITH_ZLIB=ON \
+  -Dprotobuf_BUILD_TESTS=OFF \
+  -Dprotobuf_TEST_XML_OUTDIR=OFF \
+  -Dprotobuf_BUILD_EXAMPLES=OFF \
+  -Dprotobuf_INSTALL_EXAMPLES=OFF \
+  -Dprotobuf_BUILD_CONFORMANCE=OFF \
+  -Dutf8_range_ENABLE_TESTS=OFF \
+  -Dprotobuf_ALLOW_CCACHE=OFF
 ```
-This installs `libprotobuf.so`, `libprotobuf-lite.so`, `libprotoc.so`, `libupb.a`, `protoc`, headers, and CMake config files system-wide. The Meson Python build depends on these being installed.
+
+Key flags explained:
+| Flag | Value | Why |
+|---|---|---|
+| `CMAKE_INSTALL_PREFIX` | `/tmp/eugo/__debug/protobuf` | Eugo install root (adjust per environment) |
+| `BUILD_SHARED_LIBS` / `protobuf_BUILD_SHARED_LIBS` | `ON` | Produce `.so` files, not static `.a` |
+| `protobuf_BUILD_LIBPROTOC` | `ON` | Build `libprotoc.so` (needed by `protoc` plugins) |
+| `protobuf_BUILD_PROTOC_BINARIES` | `ON` | Build `protoc` binary — required by Meson Python build |
+| `protobuf_BUILD_LIBUPB` | `ON` | Build `libupb` — required by Meson Python build |
+| `utf8_range_ENABLE_INSTALL` | `ON` | Install `utf8_range` CMake config — required by Meson Python build |
+| `protobuf_MODULE_COMPATIBLE` | `ON` | Generate `FindProtobuf`-compatible CMake config |
+| `protobuf_WITH_ZLIB` | `ON` | Enable zlib support in protobuf |
+| `protobuf_DISABLE_RTTI` | `OFF` | Keep RTTI enabled (required for upb Python extension) |
+| `protobuf_USE_UNITY_BUILD` | `OFF` | Disable unity build (faster incremental builds, avoids ODR issues) |
+| All `BUILD_TESTS/EXAMPLES/CONFORMANCE` | `OFF` | Skip test/example targets — production build only |
+
+This installs `libprotobuf.so`, `libprotobuf-lite.so`, `libprotoc.so`, `libupb.a`, `protoc`, headers, and CMake config files to `CMAKE_INSTALL_PREFIX`. The Meson Python build depends on these being installed and discoverable via CMake config.
 
 ### python/protobuf (Python extension)
 ```bash
 # Meson-based build (our build system)
-pip install meson-python meson cmake
-pip install . --no-build-isolation  # or: pip wheel .
+pip install . -v -v -v --compile --no-deps --no-cache-dir --no-build-isolation --no-binary :all: -Db_colorout=always -Dc_std=gnu17 -Dcpp_std=gnu++23 -Dfortran_std='none' -Dbuildtype=release -Dcmake_prefix_path=/usr/local/lib/python3.12/site-packages;/opt/llvm_toolchain;/usr/local -Dpkg_config_path=/usr/local/lib64/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig -Dpython.bytecompile=2 -Dpython.allow_limited_api=false -Dwrap_mode=nofallback
 ```
 The Meson build file is at `./meson.build`. It:
 - Finds `libupb` via `dependency('protobuf', method: 'cmake', modules: ['protobuf::libupb'])`
@@ -59,7 +93,20 @@ The Meson build file is at `./meson.build`. It:
 
 ## Downstream impact: `grpcio_tools` is eliminated
 
-Our fork eliminates `grpcio_tools`. Upstream ships a separate `grpcio_tools` package (`python -m grpc_tools.protoc` / `grpc_tools.protoc.main([...])`) that bundles `protoc` + `grpc_python_plugin` as a Python extension. **Our fork does not need this.** Instead, users invoke the native `protoc` binary (installed by the CMake build) with `grpc_python_plugin` (installed by the `eugo-inc/grpc` CMake build) directly:
+Our fork eliminates `grpcio_tools`. **There are no source code changes in this protobuf repo that remove `grpcio_tools`** — it is an architectural consequence of how Eugo builds its native stack.
+
+### Why `grpcio_tools` exists upstream
+
+In the upstream world, Python users don't have `protoc` or `grpc_python_plugin` installed as system binaries. The `grpcio_tools` package (lives in the **grpc** repo at `tools/distrib/python/grpcio_tools/`, not in this protobuf repo) solves this by bundling `protoc` and `grpc_python_plugin` into a Python C extension, so users can call `python -m grpc_tools.protoc` or `grpc_tools.protoc.main([...])` without any native toolchain.
+
+### Why Eugo doesn't need it
+
+Eugo builds two native packages via CMake before building any Python packages:
+
+1. **`native/protobuf`** (this repo) — `cmake --install build` installs `protoc`, `libprotobuf.so`, `libupb.a`, well-known `.proto` files to `/usr/local/include/`, and CMake config files system-wide.
+2. **`native/grpc`** (`eugo-inc/grpc` repo) — `cmake --install build` installs `grpc_python_plugin`, `libgrpc.so`, and other gRPC binaries system-wide.
+
+Because both `protoc` and `grpc_python_plugin` are already on `$PATH` as native binaries, there is nothing for `grpcio_tools` to bundle. Downstream projects invoke them directly:
 
 ```bash
 protoc \
@@ -71,8 +118,6 @@ protoc \
   --grpc_python_opt="grpc_2_0" \
   "${INPUT}"
 ```
-
-This works because we build `native/protobuf` and `native/grpc` via CMake, which installs `protoc`, `grpc_python_plugin`, headers, and libraries system-wide.
 
 ### Key differences from `grpcio_tools`
 
@@ -321,45 +366,59 @@ The `meson.build` adds `src/` as an include directory. This is required because 
 
 ## Validating the Eugo wheel against upstream
 
-Comparing our Meson-built wheel against the upstream `protobuf` wheel from PyPI is the primary correctness gate. If the two wheels contain the same pure-Python files, export the same native symbols, and pass the same runtime smoke tests, then our build is correct.
+Comparing our Meson-built install against the upstream `protobuf` wheel from PyPI is the primary correctness gate. If the two installs contain the same pure-Python files, export the same native symbols, and pass the same runtime smoke tests, then our build is correct.
 
-### Obtaining the two wheels
+### Setting up the comparison
 
 ```bash
-# 1. Build the Eugo wheel (requires system-installed libupb + utf8_range)
-pip3 wheel . --no-build-isolation --no-deps -w dist/eugo/
+# Set working dirs — run from the protobuf source root
+EUGO_INSTALLED_DIR=/tmp/eugo/eugo-installed
+EUGO_UPSTREAM_WHEEL_DIR=/tmp/eugo/protobuf-upstream-wheel
+EUGO_UPSTREAM_DIR=/tmp/eugo/protobuf-upstream
 
-# 2. Download the matching upstream wheel from PyPI
-PROTOBUF_VERSION=$(python3 -c "exec(open('python/google/protobuf/__init__.py').read()); print(__version__)")
-pip3 download protobuf==${PROTOBUF_VERSION} \
+# 1. Install the Eugo build to a clean target dir (requires system-installed libupb + utf8_range)
+rm -rf "./upb/" "${EUGO_INSTALLED_DIR}"
+pip3 install . ${EUGO_PIP_COMPILABLE_PACKAGE_OPTIONS} ${EUGO_MESONPY_COMMON_OPTIONS} \
+    --target "${EUGO_INSTALLED_DIR}" \
+    --no-deps
+
+# 2. Download and unpack the matching upstream wheel from PyPI
+EUGO_UPSTREAM_WHEEL_PROTOBUF_VERSION=$(python3 -c "exec(open('python/google/protobuf/__init__.py').read()); print(__version__)")
+pip3 download protobuf==${EUGO_UPSTREAM_WHEEL_PROTOBUF_VERSION} \
     --no-deps \
     --only-binary=:all: \
-    --platform manylinux2014_x86_64 \
+    --platform manylinux2014_aarch64 \
     --python-version 312 \
-    -d dist/upstream/
+    -d "${EUGO_UPSTREAM_WHEEL_DIR}"
+
+mkdir -p "${EUGO_UPSTREAM_DIR}"
+unzip -o "${EUGO_UPSTREAM_WHEEL_DIR}"/protobuf-*.whl -d "${EUGO_UPSTREAM_DIR}"
 ```
 
-### Step 1: Unpack and diff file listings
+### Step 1: Diff file listings
 
 ```bash
-mkdir -p /tmp/eugo_wheel /tmp/upstream_wheel
-unzip -o dist/eugo/protobuf-*.whl -d /tmp/eugo_wheel
-unzip -o dist/upstream/protobuf-*.whl -d /tmp/upstream_wheel
+# List all files relative to each install root, ignoring .dist-info metadata and __pycache__
+# __pycache__ is excluded because pip3 install --target bytecomplies (-Dpython.bytecompile=2)
+# while the upstream wheel ships .py-only (bytecache is generated at install time).
+# The grep -v '_files.txt' filter prevents the listing files themselves from appearing on reruns.
+(cd "${EUGO_INSTALLED_DIR}" && find . -type f | grep -v '\.dist-info' | grep -v '__pycache__' | grep -v '_files\.txt' | sort) > "${EUGO_INSTALLED_DIR}/eugo_files.txt"
+(cd "${EUGO_UPSTREAM_DIR}" && find . -type f | grep -v '\.dist-info' | grep -v '__pycache__' | grep -v '_files\.txt' | sort) > "${EUGO_UPSTREAM_DIR}/upstream_files.txt"
 
-# List all files relative to the unpack root, ignoring .dist-info metadata
-(cd /tmp/eugo_wheel    && find . -type f | grep -v '\.dist-info' | sort) > /tmp/eugo_files.txt
-(cd /tmp/upstream_wheel && find . -type f | grep -v '\.dist-info' | sort) > /tmp/upstream_files.txt
-
-diff /tmp/eugo_files.txt /tmp/upstream_files.txt
+diff "${EUGO_UPSTREAM_DIR}/upstream_files.txt" "${EUGO_INSTALLED_DIR}/eugo_files.txt"
 ```
 
-**Expected result**: The file listings should be identical. Every `.py` file, `__init__.py`, `*_pb2.py`, and `_message` shared object present in the upstream wheel must also be present in ours. Any missing file indicates a gap in `meson.build`'s `install_subdir` / `install_data` / `custom_target` rules.
+**Expected result**: The file listings should be identical except for the `_message` shared object filename:
+- Upstream: `./google/_upb/_message.abi3.so` — uses CPython stable ABI (`Limited API`)
+- Eugo: `./google/_upb/_message.cpython-312-aarch64-linux-gnu.so` — uses full CPython ABI (`-Dpython.allow_limited_api=false`)
+
+This `.so` naming difference is **intentional**. Both load correctly as `google._upb._message`. Every `.py` file, `__init__.py`, and `*_pb2.py` present in the upstream wheel must also be present in ours. Any missing `.py` file indicates a gap in `meson.build`'s `install_subdir` / `install_data` / `custom_target` rules.
 
 ### Step 2: Diff pure-Python file contents
 
 ```bash
 # Compare every .py file byte-for-byte
-diff -rq /tmp/eugo_wheel/google/ /tmp/upstream_wheel/google/ \
+diff -rq "${EUGO_INSTALLED_DIR}/google/" "${EUGO_UPSTREAM_DIR}/google/" \
     --exclude='*.so' \
     --exclude='*.dylib' \
     --exclude='__pycache__'
@@ -369,28 +428,39 @@ diff -rq /tmp/eugo_wheel/google/ /tmp/upstream_wheel/google/ \
 
 ### Step 3: Compare native extension exported symbols
 
-The `_message` shared object will differ at the binary level (different compiler flags, linking strategy), but the **exported symbol set** must be equivalent.
+The `_message` shared object will differ at the binary level, and the exported symbol sets differ in an expected way due to how the linker version script works.
 
 ```bash
 # Eugo _message
-nm -D /tmp/eugo_wheel/google/_upb/_message*.so | grep ' T ' | awk '{print $3}' | sort > /tmp/eugo_symbols.txt
+nm -DC "${EUGO_INSTALLED_DIR}"/google/_upb/_message*.so | grep ' T ' | awk '{print $3}' | sort > "${EUGO_INSTALLED_DIR}/eugo_symbols.txt"
 
 # Upstream _message
-nm -D /tmp/upstream_wheel/google/_upb/_message*.so | grep ' T ' | awk '{print $3}' | sort > /tmp/upstream_symbols.txt
+nm -DC "${EUGO_UPSTREAM_DIR}"/google/_upb/_message*.so | grep ' T ' | awk '{print $3}' | sort > "${EUGO_UPSTREAM_DIR}/upstream_symbols.txt"
 
-diff /tmp/eugo_symbols.txt /tmp/upstream_symbols.txt
+diff "${EUGO_UPSTREAM_DIR}/upstream_symbols.txt" "${EUGO_INSTALLED_DIR}/eugo_symbols.txt"
 ```
 
-**Expected result**: Both should export `PyInit__message`. Our Meson build uses the linker version script (`python/version_script.lds`) to hide all other symbols — matching upstream's behavior.
+**Expected result**: The diff will show:
+```
+1,3c1
+< _fini
+< _init
+< PyInit__message
+---
+> PyInit__message@@message
+```
+This is **intentional** and correct:
+- Upstream exports `_fini`, `_init` (standard ELF init/fini functions) and an unversioned `PyInit__message`.
+- Eugo exports only `PyInit__message@@message` — the `@@message` suffix is the ELF symbol version assigned by `python/version_script.lds` (where `message` is the version node name). Our version script explicitly hides `_fini`, `_init`, and all other symbols, exporting only `PyInit__message`. This is stricter than upstream and matches Python's own ABI expectations.
 
 ### Step 4: Compare dynamic library dependencies
 
 ```bash
 # Check what shared libraries each _message links against
-readelf -d /tmp/eugo_wheel/google/_upb/_message*.so  | grep NEEDED | awk '{print $5}' | sort > /tmp/eugo_needed.txt
-readelf -d /tmp/upstream_wheel/google/_upb/_message*.so | grep NEEDED | awk '{print $5}' | sort > /tmp/upstream_needed.txt
+readelf -d "${EUGO_INSTALLED_DIR}"/google/_upb/_message*.so | grep NEEDED | awk '{print $5}' | sort > "${EUGO_INSTALLED_DIR}/eugo_needed.txt"
+readelf -d "${EUGO_UPSTREAM_DIR}"/google/_upb/_message*.so | grep NEEDED | awk '{print $5}' | sort > "${EUGO_UPSTREAM_DIR}/upstream_needed.txt"
 
-diff /tmp/eugo_needed.txt /tmp/upstream_needed.txt
+diff "${EUGO_UPSTREAM_DIR}/upstream_needed.txt" "${EUGO_INSTALLED_DIR}/eugo_needed.txt"
 ```
 
 **Expected result**: These will intentionally differ. Upstream bundles all C dependencies statically into `_message.so` (upb, utf8_range, etc.), so it typically has very few `NEEDED` entries (just `libc`, `libpthread`, `libm`, etc.). Our wheel dynamically links against system `libupb.a` (static) and `libutf8_range` — this is by design. The key check is that our wheel **does** list the expected protobuf-related dependencies and doesn't have spurious extras.
@@ -398,8 +468,8 @@ diff /tmp/eugo_needed.txt /tmp/upstream_needed.txt
 ### Step 5: Compare package metadata
 
 ```bash
-diff /tmp/eugo_wheel/protobuf-*.dist-info/METADATA \
-     /tmp/upstream_wheel/protobuf-*.dist-info/METADATA
+diff "${EUGO_UPSTREAM_DIR}"/protobuf-*.dist-info/METADATA \
+     "${EUGO_INSTALLED_DIR}"/protobuf-*.dist-info/METADATA
 ```
 
 **Key fields to verify**:
@@ -409,12 +479,11 @@ diff /tmp/eugo_wheel/protobuf-*.dist-info/METADATA \
 
 ### Step 6: Runtime smoke tests
 
-Install the Eugo wheel into a clean venv and run all tests below. Every test must pass for the wheel to be considered correct.
+Run smoke tests against the files already installed by the setup step above — no separate venv needed.
 
 ```bash
-python -m venv /tmp/protobuf_test_venv
-source /tmp/protobuf_test_venv/bin/activate
-pip install dist/eugo/protobuf-*.whl
+# Point Python at the installed files from the comparison setup step
+export PYTHONPATH="${EUGO_INSTALLED_DIR}"
 ```
 
 #### Test 6a: Import and basic API surface
@@ -645,8 +714,7 @@ rm -rf "${PROTO_TEST_DIR}"
 #### Test summary
 
 ```bash
-deactivate
-rm -rf /tmp/protobuf_test_venv
+unset PYTHONPATH
 ```
 
 All five tests must pass:
@@ -662,8 +730,11 @@ All five tests must pass:
 
 | Difference | Likely cause | Action |
 |---|---|---|
-| Missing `.py` files in Eugo wheel | Upstream added new Python modules | Update `install_subdir` exclusion lists or add new `install_data` in `meson.build` |
-| Extra files in Eugo wheel | Test files or build artifacts included | Add exclusions to `meson.build`'s `exclude_files` / `exclude_directories` |
+| `.so` filename: `_message.abi3.so` vs `_message.cpython-312-*.so` | **Intentional** — upstream uses Limited API (`abi3`), we use full CPython ABI (`-Dpython.allow_limited_api=false`) | No action — both load correctly as `google._upb._message` |
+| `__pycache__/*.pyc` present only in Eugo | **Intentional** — `pip3 install` bytecomplies when `-Dpython.bytecompile=2` is set; upstream wheel ships `.py`-only | No action — excluded from file listing diff by the `grep -v __pycache__` filter |
+| Symbol diff: upstream has `_fini`, `_init`, `PyInit__message`; Eugo has `PyInit__message@@message` | **Intentional** — our `version_script.lds` hides `_fini`/`_init` and exports `PyInit__message` as a versioned ELF symbol (`@@message` = version node in the script) | No action — this is stricter and correct |
+| Missing `.py` files in Eugo install | Upstream added new Python modules | Update `install_subdir` exclusion lists or add new `install_data` in `meson.build` |
+| Extra files in Eugo install | Test files or build artifacts included | Add exclusions to `meson.build`'s `exclude_files` / `exclude_directories` |
 | Missing `*_pb2.py` files | Upstream added new well-known `.proto` files | Add `custom_target()` in `src/google/protobuf/meson.build` |
 | `.py` file content differs | Upstream modified Python source since fork point | Merge upstream (`git merge upstream/main`) |
 | Different exported symbols | Upstream changed visibility flags or extension structure | Review `meson.build` and `version_script.lds` |
