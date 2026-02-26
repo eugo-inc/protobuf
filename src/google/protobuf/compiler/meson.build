@@ -1,4 +1,6 @@
 # === @begin: plugin.proto ===
+# Bazel: //:compiler_plugin_proto -> src/google/protobuf/compiler:plugin_proto
+# Packaged in: python/dist/BUILD.bazel -> pkg_files("generated_wkt_compiler")
 plugin_proto = ['plugin.proto']
 
 # @begin: proto_py
