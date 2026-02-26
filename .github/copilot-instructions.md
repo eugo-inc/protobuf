@@ -378,9 +378,7 @@ EUGO_UPSTREAM_DIR=/tmp/eugo/protobuf-upstream
 
 # 1. Install the Eugo build to a clean target dir (requires system-installed libupb + utf8_range)
 rm -rf "./upb/" "${EUGO_INSTALLED_DIR}"
-pip3 install . ${EUGO_PIP_COMPILABLE_PACKAGE_OPTIONS} ${EUGO_MESONPY_COMMON_OPTIONS} \
-    --target "${EUGO_INSTALLED_DIR}" \
-    --no-deps
+pip3 install . ${EUGO_PIP_COMPILABLE_PACKAGE_OPTIONS} ${EUGO_MESONPY_COMMON_OPTIONS} --target "${EUGO_INSTALLED_DIR}"
 
 # 2. Download and unpack the matching upstream wheel from PyPI
 EUGO_UPSTREAM_WHEEL_PROTOBUF_VERSION=$(python3 -c "exec(open('python/google/protobuf/__init__.py').read()); print(__version__)")
@@ -499,7 +497,7 @@ print(f'protobuf version: {google.protobuf.__version__}')
 from google._upb import _message
 print(f'_message loaded: {_message}')
 
-# Verify well-known types are importable
+# Verify well-known types (*_pb2.py) are importable
 from google.protobuf import descriptor_pb2
 from google.protobuf import any_pb2
 from google.protobuf import timestamp_pb2
@@ -513,6 +511,15 @@ from google.protobuf import type_pb2
 from google.protobuf import api_pb2
 from google.protobuf.compiler import plugin_pb2
 print('All well-known types importable.')
+
+# Verify new high-level wrapper modules (added in v7.x) are importable
+from google.protobuf import any as any_util
+from google.protobuf import duration as duration_util
+from google.protobuf import timestamp as timestamp_util
+from google.protobuf import proto
+from google.protobuf import proto_json
+from google.protobuf import proto_text
+print('All high-level wrapper modules importable.')
 
 print('Test 6a passed.')
 "
@@ -711,20 +718,154 @@ print('Test 6e passed.')
 rm -rf "${PROTO_TEST_DIR}"
 ```
 
-#### Test summary
+#### Test 6f: High-level wrapper APIs (new in v7.x)
+
+Verifies the new high-level wrapper modules (`any.py`, `duration.py`, `timestamp.py`) that were added in v7.x alongside the `_pb2.py` generated stubs.
+
+```bash
+python -c "
+from google.protobuf import any as any_util
+from google.protobuf import duration as duration_util
+from google.protobuf import timestamp as timestamp_util
+from google.protobuf import timestamp_pb2, duration_pb2, any_pb2
+
+# any.pack / any.unpack
+ts = timestamp_pb2.Timestamp(seconds=1234567890, nanos=0)
+packed = any_util.pack(ts)
+assert packed.TypeName() == 'google.protobuf.Timestamp', f'TypeName: {packed.TypeName()}'
+unpacked = any_util.unpack_as(packed, timestamp_pb2.Timestamp)
+assert unpacked.seconds == 1234567890, f'unpack_as mismatch: {unpacked}'
+
+# duration.from_json_string
+dur = duration_util.from_json_string('3600.5s')
+assert dur.seconds == 3600 and dur.nanos == 500000000, f'Duration mismatch: {dur}'
+
+# timestamp.from_json_string
+ts2 = timestamp_util.from_json_string('2009-02-13T23:31:30Z')
+assert ts2.seconds == 1234567890, f'Timestamp mismatch: {ts2}'
+
+print('Test 6f passed.')
+"
+```
+
+#### Test 6g: Text format (classic API)
+
+Verifies `text_format.MessageToString` and `text_format.Parse` — the classic human-readable serialization format, widely used in config files and test fixtures.
+
+```bash
+python -c "
+from google.protobuf import text_format, timestamp_pb2, struct_pb2
+
+# Timestamp → text → Timestamp roundtrip
+ts = timestamp_pb2.Timestamp(seconds=1234567890, nanos=42)
+text = text_format.MessageToString(ts)
+ts2 = text_format.Parse(text, timestamp_pb2.Timestamp())
+assert ts2.seconds == 1234567890 and ts2.nanos == 42, f'Text format roundtrip mismatch: {ts2}'
+
+# Struct → text (as_one_line) → Struct
+s = struct_pb2.Struct()
+s.fields['key'].string_value = 'hello'
+text = text_format.MessageToString(s, as_one_line=True)
+assert 'hello' in text, f'Struct text format missing field: {text}'
+s2 = text_format.Parse(text, struct_pb2.Struct())
+assert s2.fields['key'].string_value == 'hello', f'Struct text parse mismatch: {s2}'
+
+print('Test 6g passed.')
+"
+```
+
+#### Test 6h: `proto` high-level binary API (new in v7.x)
+
+Verifies the new `proto` module's binary serialization helpers: `serialize`, `parse`, `byte_size`, `serialize_length_prefixed`, `parse_length_prefixed`, and `clear_field`.
+
+```bash
+python -c "
+import io
+from google.protobuf import proto, timestamp_pb2, duration_pb2
+
+# proto.serialize / proto.parse roundtrip
+ts = timestamp_pb2.Timestamp(seconds=1234567890, nanos=42)
+data = proto.serialize(ts)
+ts2 = proto.parse(timestamp_pb2.Timestamp, data)
+assert ts2.seconds == 1234567890 and ts2.nanos == 42, f'proto roundtrip mismatch: {ts2}'
+
+# proto.byte_size must equal len(serialized bytes)
+size = proto.byte_size(ts)
+assert size == len(data), f'byte_size mismatch: {size} vs {len(data)}'
+
+# proto.serialize_length_prefixed / parse_length_prefixed (streaming)
+out = io.BytesIO()
+dur1 = duration_pb2.Duration(seconds=100, nanos=0)
+dur2 = duration_pb2.Duration(seconds=200, nanos=0)
+proto.serialize_length_prefixed(dur1, out)
+proto.serialize_length_prefixed(dur2, out)
+out.seek(0)
+parsed1 = proto.parse_length_prefixed(duration_pb2.Duration, out)
+parsed2 = proto.parse_length_prefixed(duration_pb2.Duration, out)
+assert parsed1.seconds == 100 and parsed2.seconds == 200, f'length-prefixed mismatch: {parsed1}, {parsed2}'
+
+# proto.clear_field
+ts3 = timestamp_pb2.Timestamp(seconds=999, nanos=1)
+proto.clear_field(ts3, 'nanos')
+assert ts3.nanos == 0 and ts3.seconds == 999, f'clear_field failed: {ts3}'
+
+print('Test 6h passed.')
+"
+```
+
+#### Test 6i: `proto_json` and `proto_text` new high-level wrappers (new in v7.x)
+
+Verifies the new `proto_json` and `proto_text` wrapper modules. Note: `proto_json.serialize` returns the proto3 JSON scalar representation for well-known types (e.g. Timestamp → RFC3339 string), and a dict for ordinary messages.
+
+```bash
+python -c "
+from google.protobuf import proto_json, proto_text, timestamp_pb2, struct_pb2, empty_pb2
+
+# proto_json.serialize returns scalars for well-known types with special JSON encoding.
+# Timestamp serializes to its RFC3339 string representation, not a dict.
+ts = timestamp_pb2.Timestamp(seconds=1234567890, nanos=0)
+d = proto_json.serialize(ts)
+ts2 = proto_json.parse(timestamp_pb2.Timestamp, d)
+assert ts2.seconds == 1234567890, f'proto_json roundtrip mismatch: {ts2}'
+
+# For plain messages, proto_json.serialize returns a dict.
+e = empty_pb2.Empty()
+d2 = proto_json.serialize(e)
+assert isinstance(d2, dict), f'proto_json empty should return dict, got: {type(d2)}'
+
+# proto_json preserving_proto_field_name option
+s = struct_pb2.Struct()
+s.fields['x'].number_value = 1.0
+d3 = proto_json.serialize(s, preserving_proto_field_name=True)
+assert isinstance(d3, dict), f'proto_json struct mismatch: {d3}'
+
+# proto_text.serialize → str, proto_text.parse str →
+ts3 = timestamp_pb2.Timestamp(seconds=42, nanos=0)
+text = proto_text.serialize(ts3)
+assert isinstance(text, str) and 'seconds' in text, f'proto_text.serialize mismatch: {repr(text)}'
+ts4 = proto_text.parse(timestamp_pb2.Timestamp, text)
+assert ts4.seconds == 42, f'proto_text roundtrip mismatch: {ts4}'
+
+print('Test 6i passed.')
+"
+```
 
 ```bash
 unset PYTHONPATH
 ```
 
-All five tests must pass:
+All nine tests must pass:
 | Test | What it validates |
 |---|---|
-| 6a | Native `_message` extension loads, version correct, all well-known types importable |
+| 6a | Native `_message` extension loads, version correct, all well-known types and new wrapper modules importable |
 | 6b | Serialization roundtrip with well-known types (Timestamp, Duration, Struct, Any, Wrappers) |
 | 6c | `protoc` code generation produces valid Python modules with working serialization |
 | 6d | JSON format support (MessageToJson, Parse, ParseDict) |
 | 6e | Descriptor and reflection API, enum types, map fields, repeated fields |
+| 6f | New high-level wrapper APIs: `any.pack`/`unpack_as`, `duration.from_json_string`, `timestamp.from_json_string` |
+| 6g | Text format: `text_format.MessageToString` / `Parse`, roundtrip with `as_one_line` |
+| 6h | `proto` module: `serialize`, `parse`, `byte_size`, `serialize_length_prefixed`, `parse_length_prefixed`, `clear_field` |
+| 6i | `proto_json` (serialize/parse — returns scalar for well-known types, dict for plain messages) and `proto_text` (text format serialize/parse) new wrappers |
 
 ### What to do when differences are found
 
